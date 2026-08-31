@@ -1,3 +1,9 @@
+import {
+  Moon, Wallet, Sparkles, Brain, Repeat, Dumbbell, Trophy,
+  Users, CircleEllipsis, Plus, Trash2, Calendar, TrendingUp,
+  Clock, ChevronLeft, ChevronRight, Bell, Tag, EyeOff, Eye, Check,
+  Droplet, Pencil, X, SlidersHorizontal, Download,
+} from "lucide-react";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
@@ -886,7 +892,26 @@ function WaterSection({ data, setData }) {
         </button>
         <div style={{ color: MUTED, fontSize: 12 }}>Attuale: {formatWater(data.waterGoal)}</div>
       </div>
+    <SectionLabel>Backup dei dati</SectionLabel>
+      <div className="dt-card">
+        <button
+          onClick={() => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const downloadAnchor = document.createElement("a");
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `day-tracker-backup-${todayStr()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+          }}
+          className="dt-btn-outline"
+        >
+          <Download size={16} /> Scarica Backup JSON
+        </button>
+      </div>
     </div>
+  );
+}</div>
   );
 }
 
