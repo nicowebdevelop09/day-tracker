@@ -37,16 +37,18 @@ jobs:
 
       - name: Estrai chiave di firma fissa
         run: |
+          mkdir -p ~/.android
           if [ -n "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > android/app/debug.keystore
-            echo "Chiave fissa posizionata in android/app/debug.keystore"
+            echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > $GITHUB_WORKSPACE/android/app/debug.keystore
+            echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > ~/.android/debug.keystore
+            echo "Chiave fissa ripristinata con successo!"
           else
             echo "::warning::Nessun secret DEBUG_KEYSTORE_BASE64 impostato!"
           fi
 
       - name: Compila l'APK
         working-directory: android
-        run: ./gradlew assembleDebug -Pandroid.injected.signing.store.file=debug.keystore -Pandroid.injected.signing.store.password=android -Pandroid.injected.signing.key.alias=androiddebugkey -Pandroid.injected.signing.key.password=android
+        run: ./gradlew assembleDebug -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/android/app/debug.keystore -Pandroid.injected.signing.store.password=android -Pandroid.injected.signing.key.alias=androiddebugkey -Pandroid.injected.signing.key.password=android
 
       - name: Carica l'APK come artifact
         uses: actions/upload-artifact@v6
