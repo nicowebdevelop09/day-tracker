@@ -9,9 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
 
@@ -20,18 +20,16 @@ jobs:
           npm install
           npm run build
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@v3
 
-      - name: Aggiungi la piattaforma Android (Capacitor)
-        run: |
-          npx cap add android
-          npx cap sync android
+      - name: Sync Capacitor Android
+        run: npx cap sync android
 
       - name: Ripristina la chiave di firma fissa (per aggiornamenti in-place)
         run: |
@@ -40,7 +38,7 @@ jobs:
             echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > ~/.android/debug.keystore
             echo "Chiave fissa ripristinata: gli aggiornamenti manterranno i dati salvati."
           else
-            echo "::warning::Nessun secret DEBUG_KEYSTORE_BASE64 impostato: verrà usata una chiave generata al volo, diversa ad ogni build. Vedi il workflow 'Generate signing key' per crearne una fissa."
+            echo "::warning::Nessun secret DEBUG_KEYSTORE_BASE64 impostato: verrà usata una chiave generata al volo, diversa ad ogni build."
           fi
 
       - name: Compila l'APK
@@ -48,7 +46,7 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Carica l'APK come artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: day-tracker-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
