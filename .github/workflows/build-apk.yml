@@ -28,8 +28,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Sync Capacitor Android
-        run: npx cap sync android
+      - name: Prepara ed esegui il sync di Capacitor Android
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+          npx cap sync android
 
       - name: Ripristina la chiave di firma fissa (per aggiornamenti in-place)
         run: |
