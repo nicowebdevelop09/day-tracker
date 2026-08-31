@@ -48,7 +48,9 @@ jobs:
 
       - name: Compila l'APK
         working-directory: android
-        run: ./gradlew assembleDebug -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/android/app/debug.keystore -Pandroid.injected.signing.store.password=android -Pandroid.injected.signing.key.alias=androiddebugkey -Pandroid.injected.signing.key.password=android
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/android/app/debug.keystore
+        run: ./gradlew assembleDebug -Pandroid.injected.signing.store.file="$KEYSTORE_PATH" -Pandroid.injected.signing.store.password=android -Pandroid.injected.signing.key.alias=androiddebugkey -Pandroid.injected.signing.key.password=android
 
       - name: Carica l'APK come artifact
         uses: actions/upload-artifact@v6
