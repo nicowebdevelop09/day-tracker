@@ -1,5 +1,10 @@
 # Changelog — Day Tracker
 
+## v4.21 — 2026-09-17
+**Tipo:** Minor (registra attività per il giorno precedente)
+
+- Nel form "Registra tempo" ora c'è un selettore **Oggi/Ieri**: utile per loggare le attività fatte prima di mezzanotte (es. il sonno) quando apri l'app dopo che il giorno è già cambiato. La voce va a finire nello Storico del giorno scelto; l'elenco "Attività di oggi" e la ruota principale restano invece sempre riferiti al giorno corrente.
+
 ## v4.20 — 2026-09-05
 **Tipo:** Minor (dimensioni e spaziatura vista Oggi)
 
