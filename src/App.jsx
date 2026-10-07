@@ -352,9 +352,6 @@ function groupEntries(entries) {
   return Object.values(groups);
 }
 
-// ------------------------------------------------------------------
-// Nuova implementazione SVG Nativa di DayWheel (senza Recharts)
-// ------------------------------------------------------------------
 function DayWheel({ entries }) {
   const totals = useMemo(() => {
     const slices = groupEntries(entries);
@@ -397,7 +394,6 @@ function DayWheel({ entries }) {
             }
 
             const [startX, startY] = getCoordinatesForPercent(startPercent);
-            // Crea un piccolissimo gap visivo
             const gap = 0.002;
             const [endX, endY] = getCoordinatesForPercent(Math.max(startPercent, endPercent - gap));
             const largeArcFlag = slicePercent > 0.5 ? 1 : 0;
@@ -550,7 +546,6 @@ function TaskGrid({ data, setData, date }) {
   );
 }
 
-// L'Accordion State viene ora passato da genitore per non perdersi al cambio Tab
 function TodayTab({ data, setData, uiState, setUiState }) {
   const [date, setDate] = useState(todayStr());
   useEffect(() => {
@@ -606,7 +601,6 @@ function TodayTab({ data, setData, uiState, setUiState }) {
     const categoryId = isOnetime ? null : cat.id;
 
     if (endMins < startMins) {
-      // Split automatico della mezzanotte
       const durYesterday = MINUTES_PER_DAY - startMins;
       const durToday = endMins;
       const entryYesterday = { id: crypto.randomUUID(), category: categoryId, label, color, start: form.start, end: "24:00", duration: durYesterday };
@@ -979,7 +973,7 @@ function CustomCatsSection({ data, setData }) {
       )}
       <button onClick={() => setShowModal(true)} className="dt-btn-outline"><Plus size={16} /> Nuova Categoria Custom</button>
       {showModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(21, 22, 27, 0.9)", display: "flex", alignItems: "center", justify-content: "center", zIndex: 100, padding: 20 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(21, 22, 27, 0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
           <div className="dt-card" style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 16 }}>
             <h3 style={{ margin: 0, color: INK, fontSize: 18, fontFamily: "'Fraunces', serif" }}>Nuova Categoria</h3>
             <div className="dt-field"><label>Nome categoria</label><input type="text" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="es. Studio, Lavoro..." /></div>
@@ -1149,8 +1143,6 @@ function Onboarding({ onComplete }) {
 export default function App() {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("today");
-  
-  // Solleviamo lo stato degli Accordion a livello di App, così persistono tra un tab e l'altro
   const [uiState, setUiState] = useState({ tasksOpen: true, activitiesOpen: true, waterOpen: true });
 
   useEffect(() => {
