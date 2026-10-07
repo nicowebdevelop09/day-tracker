@@ -78,7 +78,6 @@ function loadData() {
     if (!raw) return { entries: {}, reminders: [], hiddenBase: [], customCategories: [], water: {}, waterGoal: 2000, allowOnetime: true, waterUnit: "ml", profile: DEFAULT_PROFILE, onboarded: false, tasks: DEFAULT_TASKS, taskCompletions: {}, categoryOrder: DEFAULT_CATEGORY_ORDER, policyAccepted: false };
     const parsed = JSON.parse(raw);
     const merged = { entries: {}, reminders: [], hiddenBase: [], customCategories: [], water: {}, waterGoal: 2000, allowOnetime: true, waterUnit: "ml", profile: DEFAULT_PROFILE, onboarded: false, tasks: DEFAULT_TASKS, taskCompletions: {}, categoryOrder: DEFAULT_CATEGORY_ORDER, policyAccepted: false, ...parsed };
-    // eventuali categorie personalizzate salvate prima dell'introduzione di categoryOrder: le aggiungo in coda
     merged.customCategories.forEach((c) => { if (!merged.categoryOrder.includes(c.id)) merged.categoryOrder.push(c.id); });
     return merged;
   } catch {
@@ -89,12 +88,10 @@ function saveData(data) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
-    // storage non disponibile: si continua solo in memoria
+    // storage non disponibile
   }
 }
 
-// Categorie selezionabili per registrare tempo: base non nascoste + personalizzate.
-// "Altro" non è mai qui dentro: è solo il residuo automatico della ruota.
 function getActiveCategories(data) {
   const base = BASE_CATEGORIES.filter((c) => c.id !== "altro" && !data.hiddenBase.includes(c.id));
   const custom = data.customCategories.map((c) => ({ ...c, Icon: Tag, custom: true }));
@@ -106,8 +103,6 @@ function getActiveCategories(data) {
   });
 }
 
-// Sposta un elemento su/giù all'interno del sottoinsieme "attivo" di un
-// array di id, mantenendo la posizione relativa di quelli non attivi.
 function moveInOrder(orderArr, activeIds, id, direction) {
   const activeOrder = orderArr.filter((i) => activeIds.has(i));
   const idx = activeOrder.indexOf(id);
@@ -118,9 +113,6 @@ function moveInOrder(orderArr, activeIds, id, direction) {
   return orderArr.map((i) => (activeIds.has(i) ? activeOrder[ai++] : i));
 }
 
-// Risolve etichetta/colore di una voce registrata: usa i dati "cotti" dentro
-// la voce stessa se presenti (nuovo formato), altrimenti ripiega sulla
-// categoria base corrispondente (compatibilità con dati salvati prima).
 function resolveEntry(e) {
   if (e.label && e.color) return { label: e.label, color: e.color };
   const c = BASE_MAP[e.category];
@@ -537,8 +529,6 @@ function AccordionRow({ title, icon: Icon, open, onToggle, children }) {
   );
 }
 
-// Conversione Tonalità/Saturazione -> hex, con Valore sempre fisso al 100%
-// (altrimenti i colori scuri diventerebbero illeggibili nell'app).
 function hsvToHex(h, s) {
   const sf = s / 100;
   const c = sf;
@@ -672,9 +662,6 @@ function DayWheel({ entries }) {
 
   const trackedTotal = totals.filter((d) => d.id !== "altro").reduce((s, d) => s + d.value, 0);
 
-  // Con una sola fetta (es. giornata tutta "Altro") disegno un anello SVG a mano:
-  // evita del tutto le cuciture/artefatti che alcune librerie di grafici mostrano
-  // quando un arco copre l'intero cerchio (360°).
   if (totals.length <= 1) {
     const color = totals[0]?.color || BASE_MAP.altro.color;
     return (
@@ -932,38 +919,99 @@ function TodayTab({ data, setData }) {
       setError("Inserisci orario di inizio e fine");
       return;
     }
-    const dur = timeToMins(form.end) - timeToMins(form.start);
-    if (dur <= 0) {
-      setError("L'orario di fine deve essere dopo l'inizio");
+
+    const startMins = timeToMins(form.start);
+    const endMins = timeToMins(form.end);
+
+    const cat = activeCats.find((c) => c.id === form.categoryId) || activeCats[0];
+    const isOnetime = form.mode === "onetime";
+
+    if (!isOnetime && !cat) {
+      setError("Crea prima almeno una categoria");
       return;
     }
-    let entry;
-    if (form.mode === "onetime") {
-      if (!form.onetimeLabel.trim()) {
-        setError("Inserisci un nome per l'attività");
-        return;
-      }
-      entry = {
-        id: crypto.randomUUID(), category: null,
-        label: form.onetimeLabel.trim(), color: form.onetimeColor,
-        start: form.start, end: form.end, duration: dur,
-      };
-    } else {
-      const cat = activeCats.find((c) => c.id === form.categoryId) || activeCats[0];
-      if (!cat) {
-        setError("Crea prima almeno una categoria");
-        return;
-      }
-      entry = {
-        id: crypto.randomUUID(), category: cat.id,
-        label: cat.label, color: cat.color,
-        start: form.start, end: form.end, duration: dur,
-      };
+
+    if (isOnetime && !form.onetimeLabel.trim()) {
+      setError("Inserisci un nome per l'attività");
+      return;
     }
-    setData((d) => ({
-      ...d,
-      entries: { ...d.entries, [entryDate]: [...(d.entries[entryDate] || []), entry].sort((a, b) => a.start.localeCompare(b.start)) },
-    }));
+
+    const label = isOnetime ? form.onetimeLabel.trim() : cat.label;
+    const color = isOnetime ? form.onetimeColor : cat.color;
+    const categoryId = isOnetime ? null : cat.id;
+
+    // CASO A: L'orario attraversa la mezzanotte (es. 23:00 -> 08:00)
+    if (endMins < startMins) {
+      const durYesterday = MINUTES_PER_DAY - startMins;
+      const durToday = endMins;
+
+      const entryYesterday = {
+        id: crypto.randomUUID(),
+        category: categoryId,
+        label,
+        color,
+        start: form.start,
+        end: "24:00",
+        duration: durYesterday,
+      };
+
+      const entryToday = {
+        id: crypto.randomUUID(),
+        category: categoryId,
+        label,
+        color,
+        start: "00:00",
+        end: form.end,
+        duration: durToday,
+      };
+
+      setData((d) => {
+        const prevEntries = d.entries || {};
+        const listYesterday = prevEntries[yesterdayStr] || [];
+        const listToday = prevEntries[entryDate] || [];
+
+        return {
+          ...d,
+          entries: {
+            ...prevEntries,
+            [yesterdayStr]: [...listYesterday, entryYesterday].sort((a, b) => a.start.localeCompare(b.start)),
+            [entryDate]: [...listToday, entryToday].sort((a, b) => a.start.localeCompare(b.start)),
+          },
+        };
+      });
+    } 
+    // CASO B: Orario standard nello stesso giorno
+    else {
+      const dur = endMins - startMins;
+      if (dur <= 0) {
+        setError("L'orario di fine deve essere diverso dall'orario di inizio");
+        return;
+      }
+
+      const entry = {
+        id: crypto.randomUUID(),
+        category: categoryId,
+        label,
+        color,
+        start: form.start,
+        end: form.end,
+        duration: dur,
+      };
+
+      setData((d) => {
+        const prevEntries = d.entries || {};
+        const listToday = prevEntries[entryDate] || [];
+
+        return {
+          ...d,
+          entries: {
+            ...prevEntries,
+            [entryDate]: [...listToday, entry].sort((a, b) => a.start.localeCompare(b.start)),
+          },
+        };
+      });
+    }
+
     setForm((f) => ({ ...f, start: "", end: "", onetimeLabel: "", onetimeColor: PURE_RED }));
   };
 
@@ -1541,7 +1589,7 @@ function CalendarGrid({ selected, onSelect, hasDataDates }) {
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
   const firstDay = new Date(year, month, 1);
-  const startWeekday = (firstDay.getDay() + 6) % 7; // lunedì = 0
+  const startWeekday = (firstDay.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells = [];
   for (let i = 0; i < startWeekday; i++) cells.push(null);
@@ -1685,8 +1733,6 @@ function lastNMonths(n) {
   return months;
 }
 
-// Aggrega dinamicamente per categoria (base+personalizzate incontrate nei
-// dati), raggruppando tutte le voci "una tantum" in un'unica fascia neutra.
 function aggregateByPeriod(entriesByDate, dateList) {
   const seriesMap = {};
   const rows = dateList.map((period) => {
