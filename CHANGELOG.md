@@ -1,5 +1,13 @@
 # Changelog — Day Tracker
 
+## v5.0 — 2026-10-07
+**Tipo:** Major (Ruota SVG nativa, automazione mezzanotte e persistenza UI)
+
+- **Ruota delle attività SVG nativa**: Sostituito completamente il componente di libreria (Recharts) per la ruota giornaliera nel tab "Oggi" e nello "Storico" con un motore grafico SVG personalizzato e disegnato direttamente a mano. Elimina alla radice e in modo definitivo qualsiasi problema di taglio, disallineamento o artefatto visivo su tutti i tipi di schermo.
+- **Gestione automatica della mezzanotte (rimozione "Oggi/Ieri")**: Rimosso il selettore manuale "Oggi/Ieri" dal form di registrazione. Grazie al calcolo automatico della mezzanotte, le attività a cavallo di due giorni (es. dalle 23:00 alle 08:00) vengono automaticamente suddivise e assegnate alle rispettive giornate (la porzione prima di mezzanotte al giorno precedente, quella successiva a oggi).
+- **Mantenimento stato degli Accordion**: Lo stato di apertura/chiusura delle sezioni estendibili (Task, Attività, Acqua) è stato spostato a livello globale nell'applicazione. Cambiando tab o effettuando registrazioni, i menu a tendina mantengono la loro posizione senza richiudersi autonomamente.
+- **Fix di build ed esportazione CSS**: Corretti i dettagli di sintassi degli stili inline e la gestione delle righe estendibili per garantire una build di produzione (Vite/esbuild) completamente priva di errori.
+
 ## v4.21 — 2026-09-17
 **Tipo:** Minor (registra attività per il giorno precedente)
 
