@@ -444,11 +444,6 @@ const GLOBAL_CSS = `
     justify-content: center;
   }
 
-  .dt-task-check {
-    width: 24px; height: 24px; border-radius: 50%; border: 2px solid ${PAPER_LINE};
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: transparent;
-  }
-
   .dt-calendar { margin-bottom: 20px; }
   .dt-calendar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .dt-calendar-header button { background: transparent; border: none; color: ${INK}; padding: 6px; }
@@ -865,10 +860,12 @@ function TaskGrid({ data, setData, date }) {
   const completed = data.taskCompletions[date] || [];
   const shown = data.tasks.slice(0, 12);
 
-  const toggleTask = (id) => {
+  const toggleTaskAt = (idx) => {
+    if (!shown[idx]) return;
+    const targetId = shown[idx].id;
     setData((d) => {
       const list = d.taskCompletions[date] || [];
-      const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+      const next = list.includes(targetId) ? list.filter((x) => x !== targetId) : [...list, targetId];
       return { ...d, taskCompletions: { ...d.taskCompletions, [date]: next } };
     });
   };
@@ -877,10 +874,10 @@ function TaskGrid({ data, setData, date }) {
 
   return (
     <div className="dt-task-grid">
-      {shown.map((t) => {
-        const done = completed.includes(t.id);
+      {shown.map((t, idx) => {
+        const done = idx < completed.length;
         return (
-          <button key={t.id} onClick={() => toggleTask(t.id)} className="dt-task-square" title={t.label}>
+          <button key={t.id || idx} onClick={() => toggleTaskAt(idx)} className="dt-task-square" title={t.label}>
             {done && <Check size={16} color="#4FA37B" strokeWidth={3} />}
           </button>
         );
@@ -904,7 +901,6 @@ function TodayTab({ data, setData, tasksOpen, setTasksOpen, activitiesOpen, setA
     d.setDate(d.getDate() - 1);
     return localDateStr(d);
   }, [date]);
-  const [entryDate, setEntryDate] = useState(date);
 
   const entries = data.entries[date] || [];
   const waterEntries = data.water[date] || [];
@@ -994,19 +990,15 @@ function TodayTab({ data, setData, tasksOpen, setTasksOpen, activitiesOpen, setA
         duration: dur2,
       };
 
-      const nextDateObj = new Date(entryDate + "T00:00:00");
-      nextDateObj.setDate(nextDateObj.getDate() + 1);
-      const nextDateStr = localDateStr(nextDateObj);
-
       setData((d) => {
-        const day1Entries = [...(d.entries[entryDate] || []), entry1].sort((a, b) => a.start.localeCompare(b.start));
-        const day2Entries = [...(d.entries[nextDateStr] || []), entry2].sort((a, b) => a.start.localeCompare(b.start));
+        const day1Entries = [...(d.entries[yesterdayStr] || []), entry1].sort((a, b) => a.start.localeCompare(b.start));
+        const day2Entries = [...(d.entries[date] || []), entry2].sort((a, b) => a.start.localeCompare(b.start));
         return {
           ...d,
           entries: {
             ...d.entries,
-            [entryDate]: day1Entries,
-            [nextDateStr]: day2Entries,
+            [yesterdayStr]: day1Entries,
+            [date]: day2Entries,
           },
         };
       });
@@ -1021,7 +1013,7 @@ function TodayTab({ data, setData, tasksOpen, setTasksOpen, activitiesOpen, setA
       };
       setData((d) => ({
         ...d,
-        entries: { ...d.entries, [entryDate]: [...(d.entries[entryDate] || []), entry].sort((a, b) => a.start.localeCompare(b.start)) },
+        entries: { ...d.entries, [date]: [...(d.entries[date] || []), entry].sort((a, b) => a.start.localeCompare(b.start)) },
       }));
     }
 
@@ -1056,15 +1048,6 @@ function TodayTab({ data, setData, tasksOpen, setTasksOpen, activitiesOpen, setA
         <AccordionRow title="Attività" icon={Clock} open={activitiesOpen} onToggle={() => setActivitiesOpen((o) => !o)}>
           <SectionLabel>Registra tempo</SectionLabel>
           <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div className="dt-pill-row">
-              <Pill active={entryDate === date} color={INK} onClick={() => setEntryDate(date)}>Oggi</Pill>
-              <Pill active={entryDate === yesterdayStr} color={INK} onClick={() => setEntryDate(yesterdayStr)}>Ieri</Pill>
-            </div>
-            {entryDate === yesterdayStr && (
-              <div style={{ color: MUTED, fontSize: 12 }}>
-                Stai registrando un'attività per <b style={{ color: INK }}>{fmtDateLabel(yesterdayStr)}</b> — utile per le ore prima di mezzanotte.
-              </div>
-            )}
             <div className="dt-pill-row">
               {activeCats.map((c) => (
                 <Pill
@@ -2047,7 +2030,6 @@ export default function App() {
   const [tab, setTab] = useState("today");
   const [now, setNow] = useState(new Date());
 
-  // Stati degli accordion sollevati a livello superiore per non azzerarsi cambiando tab
   const [tasksOpen, setTasksOpen] = useState(true);
   const [activitiesOpen, setActivitiesOpen] = useState(true);
   const [waterOpen, setWaterOpen] = useState(true);
