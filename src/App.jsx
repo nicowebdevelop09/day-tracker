@@ -442,7 +442,6 @@ const GLOBAL_CSS = `
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
   }
 
   .dt-calendar { margin-bottom: 20px; }
@@ -878,16 +877,8 @@ function TaskGrid({ data, setData, date }) {
       {shown.map((t, idx) => {
         const done = idx < completed.length;
         return (
-          <button
-            key={t.id || idx}
-            onClick={() => toggleTaskAt(idx)}
-            className="dt-task-square"
-            style={{
-              backgroundColor: done ? t.color : PAPER_LINE,
-            }}
-            title={t.label}
-          >
-            {done && <Check size={14} color="#fff" strokeWidth={3} />}
+          <button key={t.id || idx} onClick={() => toggleTaskAt(idx)} className="dt-task-square" title={t.label}>
+            {done && <Check size={16} color="#4FA37B" strokeWidth={3} />}
           </button>
         );
       })}
@@ -979,6 +970,7 @@ function TodayTab({ data, setData, tasksOpen, setTasksOpen, activitiesOpen, setA
       };
     }
 
+    // Gestione automatica attività a cavallo della mezzanotte (es. 23:00 - 08:00)
     if (endMins <= startMins) {
       const dur1 = 1440 - startMins;
       const entry1 = {
