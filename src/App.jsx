@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
-import { LocalNotifications } from "@capacitor/local-notifications";
-import { Filesystem, Directory } from "@capacitor/filesystem";
-import { Share } from "@capacitor/share";
 import {
   ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -997,7 +994,9 @@ function RemindersSection({ data, setData }) {
 
   useEffect(() => {
     if (!isWeb) {
-      LocalNotifications.requestPermissions().then((res) => { if (res.display !== "granted") setError("Permessi notifiche negati"); });
+      import("@capacitor/local-notifications").then(({ LocalNotifications }) => {
+        LocalNotifications.requestPermissions().then((res) => { if (res.display !== "granted") setError("Permessi notifiche negati"); });
+      }).catch(() => {});
     }
   }, [isWeb]);
 
@@ -1009,6 +1008,7 @@ function RemindersSection({ data, setData }) {
     const [h, m] = time.split(":").map(Number);
     if (!isWeb) {
       try {
+        const { LocalNotifications } = await import("@capacitor/local-notifications");
         await LocalNotifications.schedule({
           notifications: [{
             id,
@@ -1027,7 +1027,12 @@ function RemindersSection({ data, setData }) {
   };
 
   const removeReminder = async (id) => {
-    if (!isWeb) { try { await LocalNotifications.cancel({ notifications: [{ id }] }); } catch (e) {} }
+    if (!isWeb) { 
+      try { 
+        const { LocalNotifications } = await import("@capacitor/local-notifications");
+        await LocalNotifications.cancel({ notifications: [{ id }] }); 
+      } catch (e) {} 
+    }
     setData((d) => ({ ...d, reminders: d.reminders.filter((r) => r.id !== id) }));
   };
 
@@ -1148,7 +1153,7 @@ function SettingsTab({ data, setData, exportData, importData }) {
           <button onClick={() => { if (confirm("Sei sicuro? Tutti i dati verranno eliminati.")) setData({ ...data, entries: {}, reminders: [], taskCompletions: {}, water: {} }); }} className="dt-btn-outline" style={{ color: "#D46A5C", borderColor: "#D46A5C26" }}><RotateCcw size={16} /> Resetta Dati</button>
         </div>
       </div>
-      <div style={{ textAlign: "center", color: MUTED, fontSize: 11, letterSpacing: 0.5 }}>DAYTRACKER V5.5 · TUTTI I DATI RESTANO SUL DISPOSITIVO</div>
+      <div style={{ textAlign: "center", color: MUTED, fontSize: 11, letterSpacing: 0.5 }}>DAYTRACKER V5.6 · TUTTI I DATI RESTANO SUL DISPOSITIVO</div>
 
       {showAccountModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(21, 22, 27, 0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 20 }}>
@@ -1241,6 +1246,10 @@ export default function App() {
 
     if (Capacitor.isNativePlatform()) {
       try {
+        const [{ Filesystem, Directory }, { Share }] = await Promise.all([
+          import("@capacitor/filesystem"),
+          import("@capacitor/share")
+        ]);
         const result = await Filesystem.writeFile({
           path: fileName,
           data: json,
