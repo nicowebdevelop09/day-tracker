@@ -22,6 +22,7 @@ const PAPER_RAISED = "#1D1F26";
 const PAPER_LINE = "#2A2C35";
 const MUTED = "#8C8E9B";
 const WATER = "#5FA8D3";
+const TASK_GREEN = "#4FA37B"; // Verde per il riassunto task
 const MINUTES_PER_DAY = 24 * 60;
 
 const BASE_CATEGORIES = [
@@ -883,6 +884,7 @@ function TasksManageSection({ data, setData }) {
 
 function TaskGrid({ data, setData, date }) {
   const completed = data.taskCompletions[date] || [];
+  // Mantiene sempre l'ordine originale dei task definiti in "tasks"
   const shown = data.tasks.slice(0, 12);
 
   const toggleTask = (id) => {
@@ -905,7 +907,7 @@ function TaskGrid({ data, setData, date }) {
             onClick={() => toggleTask(t.id)}
             className="dt-task-square"
             style={{
-              backgroundColor: done ? t.color : PAPER_LINE,
+              backgroundColor: done ? TASK_GREEN : PAPER_LINE,
             }}
             title={t.label}
           >
