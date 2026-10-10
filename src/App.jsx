@@ -442,6 +442,23 @@ const GLOBAL_CSS = `
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+  }
+
+  .dt-task-check {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    border-radius: 6px;
+    border: 2px solid ${PAPER_LINE};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
   }
 
   .dt-calendar { margin-bottom: 20px; }
@@ -776,8 +793,16 @@ function TasksSection({ data, setData, date }) {
         const done = completed.includes(t.id);
         return (
           <div key={t.id} className="dt-entry-row" style={{ opacity: done ? 0.6 : 1 }}>
-            <button onClick={() => toggleTask(t.id)} className="dt-task-check" style={{ borderColor: t.color, background: done ? t.color : "transparent" }}>
-              {done && <Check size={13} color="#fff" />}
+            <button
+              type="button"
+              onClick={() => toggleTask(t.id)}
+              className="dt-task-check"
+              style={{
+                background: done ? t.color : "transparent",
+                borderColor: done ? t.color : PAPER_LINE,
+              }}
+            >
+              {done && <Check size={13} color="#fff" strokeWidth={3} />}
             </button>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="dt-entry-title" style={{ textDecoration: done ? "line-through" : "none" }}>{t.label}</div>
@@ -860,12 +885,10 @@ function TaskGrid({ data, setData, date }) {
   const completed = data.taskCompletions[date] || [];
   const shown = data.tasks.slice(0, 12);
 
-  const toggleTaskAt = (idx) => {
-    if (!shown[idx]) return;
-    const targetId = shown[idx].id;
+  const toggleTask = (id) => {
     setData((d) => {
       const list = d.taskCompletions[date] || [];
-      const next = list.includes(targetId) ? list.filter((x) => x !== targetId) : [...list, targetId];
+      const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
       return { ...d, taskCompletions: { ...d.taskCompletions, [date]: next } };
     });
   };
@@ -874,11 +897,19 @@ function TaskGrid({ data, setData, date }) {
 
   return (
     <div className="dt-task-grid">
-      {shown.map((t, idx) => {
-        const done = idx < completed.length;
+      {shown.map((t) => {
+        const done = completed.includes(t.id);
         return (
-          <button key={t.id || idx} onClick={() => toggleTaskAt(idx)} className="dt-task-square" title={t.label}>
-            {done && <Check size={16} color="#4FA37B" strokeWidth={3} />}
+          <button
+            key={t.id}
+            onClick={() => toggleTask(t.id)}
+            className="dt-task-square"
+            style={{
+              backgroundColor: done ? t.color : PAPER_LINE,
+            }}
+            title={t.label}
+          >
+            {done && <Check size={14} color="#fff" strokeWidth={3} />}
           </button>
         );
       })}
@@ -970,7 +1001,6 @@ function TodayTab({ data, setData, tasksOpen, setTasksOpen, activitiesOpen, setA
       };
     }
 
-    // Gestione automatica attività a cavallo della mezzanotte (es. 23:00 - 08:00)
     if (endMins <= startMins) {
       const dur1 = 1440 - startMins;
       const entry1 = {
@@ -2033,6 +2063,13 @@ export default function App() {
   const [tasksOpen, setTasksOpen] = useState(true);
   const [activitiesOpen, setActivitiesOpen] = useState(true);
   const [waterOpen, setWaterOpen] = useState(true);
+
+  // Riporta lo scroll in cima ogni volta che cambi tab
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const mainEl = document.querySelector('.dt-main');
+    if (mainEl) mainEl.scrollTop = 0;
+  }, [tab]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30000);
