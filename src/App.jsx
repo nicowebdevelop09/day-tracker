@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import {
   ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -10,7 +12,7 @@ import {
   Moon, Wallet, Sparkles, Brain, Repeat, Dumbbell, Trophy,
   Users, CircleEllipsis, Plus, Trash2, Calendar, TrendingUp,
   Clock, ChevronLeft, ChevronRight, Bell, Tag, EyeOff, Eye, Check,
-  Droplet, Pencil, X, SlidersHorizontal, Palette, ListChecks, RotateCcw, ChevronDown, ArrowUp, ArrowDown,
+  Droplet, X, SlidersHorizontal, ListChecks, RotateCcw, ChevronDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 
 /* ---------------------------------------------------------
@@ -36,11 +38,6 @@ const BASE_CATEGORIES = [
   { id: "altro", label: "Altro", color: "#6B6E78", Icon: CircleEllipsis },
 ];
 const BASE_MAP = Object.fromEntries(BASE_CATEGORIES.map((c) => [c.id, c]));
-
-const PALETTE = [
-  "#7C8BD9", "#4FA37B", "#D4AF37", "#9B84E0", "#4CB0A6", "#D46A5C",
-  "#E0954E", "#D67AA8", "#6FA8DC", "#B5C34C", "#C97064", "#5FA8A0",
-];
 
 const STORAGE_KEY = "day-tracker-v1";
 const localDateStr = (d) => {
@@ -695,8 +692,8 @@ function TodayTab({ data, setData, uiState, setUiState }) {
         
         <AccordionRow title="Acqua" icon={Droplet} open={uiState.waterOpen} onToggle={() => setUiState((s) => ({ ...s, waterOpen: !s.waterOpen }))}>
           <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div className="dt-field"><label>Aggiungi {data.waterUnit === "L" ? "Litri" : "ml"}</label><input type="number" step="0.1" value={waterInput} onChange={(e) => setWaterInput(e.target.value)} placeholder={`es. ${data.waterUnit === "L" ? "0.5" : "500"}`} /></div>
-            <button onClick={addWater} className="dt-btn-primary"><Plus size={16} /> Aggiungi {data.waterUnit}</button>
+            <div className="dt-field"><label>Aggiungi acqua ({data.waterUnit === "L" ? "litri o ml" : "ml"})</label><input type="number" step="0.1" value={waterInput} onChange={(e) => setWaterInput(e.target.value)} placeholder={`es. ${data.waterUnit === "L" ? "0.5 (o 500)" : "250"}`} /></div>
+            <button onClick={addWater} className="dt-btn-primary"><Plus size={16} /> Aggiungi acqua</button>
           </div>
           {waterEntries.length > 0 && (
             <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -772,7 +769,7 @@ function HistoryTab({ data }) {
         <span className="dt-history-date">{fmtDateLabel(date)}</span>
         <button onClick={nextDate} disabled={isToday} className="dt-nav-btn" style={{ opacity: isToday ? 0.3 : 1 }}><ChevronRight size={20} /></button>
       </div>
-      {(entries.length === 0 && waterEntries.length === 0 && completedTasks.length === 0) ? (
+      {(entries.length === 0 && waterEntries.length === 0 && data.tasks.length === 0) ? (
         <div className="dt-empty"><Calendar size={48} opacity={0.2} /><p>Nessun dato registrato</p></div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
@@ -783,16 +780,19 @@ function HistoryTab({ data }) {
             </div>
           </div>
           <Legend2 entries={entries} />
-          {completedTasks.length > 0 && (
+          {data.tasks.length > 0 && (
             <div>
-              <SectionLabel>Task completati</SectionLabel>
+              <SectionLabel>Task giornalieri</SectionLabel>
               <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {completedTasks.map((id) => {
-                  const t = data.tasks.find((x) => x.id === id);
-                  if (!t) return null;
+                {data.tasks.map((t) => {
+                  const done = completedTasks.includes(t.id);
                   return (
-                    <div key={id} style={{ display: "flex", alignItems: "center", gap: 8, color: INK, fontSize: 14 }}>
-                      <Check size={16} color={t.color} /> {t.label}
+                    <div key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: INK, fontSize: 14 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span className="dt-cat-dot" style={{ background: t.color }} />
+                        {t.label}
+                      </span>
+                      {done ? <Check size={16} color="#4FA37B" /> : <X size={16} color={MUTED} />}
                     </div>
                   );
                 })}
@@ -1009,7 +1009,16 @@ function RemindersSection({ data, setData }) {
     const [h, m] = time.split(":").map(Number);
     if (!isWeb) {
       try {
-        await LocalNotifications.schedule({ notifications: [{ id, title: "Promemoria DayTracker", body: rem.label, schedule: { on: { hour: h, minute: m }, allowWhileIdle: true } }] });
+        await LocalNotifications.schedule({
+          notifications: [{
+            id,
+            title: "Sveglia / Promemoria DayTracker",
+            body: rem.label,
+            schedule: { on: { hour: h, minute: m }, allowWhileIdle: true },
+            sound: "alarm.wav",
+            channelId: "alarms"
+          }]
+        });
       } catch { setError("Errore di scheduling (dispositivo non supportato?)"); return; }
     }
     setData((d) => ({ ...d, reminders: [...d.reminders, rem].sort((a, b) => a.time.localeCompare(b.time)) }));
@@ -1024,15 +1033,15 @@ function RemindersSection({ data, setData }) {
 
   return (
     <div>
-      <SectionLabel>Promemoria</SectionLabel>
-      {isWeb && <p className="dt-reminder-note">Sul web i promemoria sono solo visivi (non riceverai notifiche push). Usa l'app nativa per le notifiche.</p>}
+      <SectionLabel>Promemoria e Sveglie</SectionLabel>
+      {isWeb && <p className="dt-reminder-note">Sul web i promemoria sono solo visivi (non riceveranno la suoneria sveglia). Usa l'app nativa.</p>}
       <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 12 }}>
           <div className="dt-field" style={{ flex: "0 0 100px" }}><label>Orario</label><input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></div>
-          <div className="dt-field"><label>Messaggio</label><input type="text" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="es. Bevi acqua!" /></div>
+          <div className="dt-field"><label>Messaggio</label><input type="text" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="es. Sveglia / Bevi acqua!" /></div>
         </div>
         {error && <p className="dt-error">{error}</p>}
-        <button onClick={addReminder} className="dt-btn-primary"><Bell size={16} /> Aggiungi promemoria</button>
+        <button onClick={addReminder} className="dt-btn-primary"><Bell size={16} /> Imposta come Sveglia</button>
       </div>
       {data.reminders.length > 0 && (
         <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1051,8 +1060,27 @@ function RemindersSection({ data, setData }) {
 
 function SettingsTab({ data, setData, exportData, importData }) {
   const fileInputRef = useRef(null);
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [accForm, setAccForm] = useState({
+    name: data.profile.name || "",
+    birthYear: data.profile.birthYear ? String(data.profile.birthYear) : "",
+    heightCm: data.profile.heightCm ? String(data.profile.heightCm) : "",
+    weightKg: data.profile.weightKg ? String(data.profile.weightKg) : "",
+  });
 
-  const updateProfile = (k, v) => setData((d) => ({ ...d, profile: { ...d.profile, [k]: v } }));
+  const saveAccount = () => {
+    setData((d) => ({
+      ...d,
+      profile: {
+        name: accForm.name.trim(),
+        birthYear: accForm.birthYear ? parseInt(accForm.birthYear, 10) : null,
+        heightCm: accForm.heightCm ? parseInt(accForm.heightCm, 10) : null,
+        weightKg: accForm.weightKg ? parseInt(accForm.weightKg, 10) : null,
+      },
+    }));
+    setShowAccountModal(false);
+  };
+
   const handleImport = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1065,23 +1093,40 @@ function SettingsTab({ data, setData, exportData, importData }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
       <div>
-        <SectionLabel>Profilo Fisiologico</SectionLabel>
-        <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div className="dt-field"><label>Nome o Nickname</label><input type="text" value={data.profile.name || ""} onChange={(e) => updateProfile("name", e.target.value)} placeholder="es. Mario" /></div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <div className="dt-field"><label>Anno di nascita</label><input type="number" value={data.profile.birthYear || ""} onChange={(e) => updateProfile("birthYear", e.target.value)} placeholder="es. 1990" /></div>
-            <div className="dt-field"><label>Altezza (cm)</label><input type="number" value={data.profile.heightCm || ""} onChange={(e) => updateProfile("heightCm", e.target.value)} placeholder="es. 175" /></div>
-            <div className="dt-field"><label>Peso (kg)</label><input type="number" value={data.profile.weightKg || ""} onChange={(e) => updateProfile("weightKg", e.target.value)} placeholder="es. 70" /></div>
+        <SectionLabel>Account</SectionLabel>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: PAPER_RAISED, border: `1px solid ${PAPER_LINE}`, borderRadius: 16, padding: "14px 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: data.profile.name ? WATER : MUTED }} />
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 500, color: INK }}>{data.profile.name || "Account non configurato"}</div>
+              <div style={{ fontSize: 12, color: MUTED }}>Profilo e dati personali</div>
+            </div>
           </div>
+          <button
+            onClick={() => {
+              setAccForm({
+                name: data.profile.name || "",
+                birthYear: data.profile.birthYear ? String(data.profile.birthYear) : "",
+                heightCm: data.profile.heightCm ? String(data.profile.heightCm) : "",
+                weightKg: data.profile.weightKg ? String(data.profile.weightKg) : "",
+              });
+              setShowAccountModal(true);
+            }}
+            className="dt-btn-outline"
+            style={{ width: "auto", padding: "8px 14px", fontSize: 13 }}
+          >
+            Modifica
+          </button>
         </div>
       </div>
+
       <div>
         <SectionLabel>Impostazioni Tracciamento</SectionLabel>
         <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="dt-toggle-row"><div><div style={{ color: INK, fontSize: 15, fontWeight: 500 }}>Attività Una Tantum</div><div className="desc">Permetti inserimento rapido senza categoria</div></div><Switch on={data.allowOnetime} onClick={() => setData((d) => ({ ...d, allowOnetime: !d.allowOnetime }))} /></div>
           <div style={{ height: 1, background: PAPER_LINE }} />
           <div style={{ display: "flex", gap: 12 }}>
-            <div className="dt-field"><label>Obiettivo Acqua Giornaliero</label><input type="number" value={data.waterGoal} onChange={(e) => setData((d) => ({ ...d, waterGoal: Number(e.target.value) }))} /></div>
+            <div className="dt-field"><label>Obiettivo Acqua Giornaliero (in ml)</label><input type="number" value={data.waterGoal} onChange={(e) => setData((d) => ({ ...d, waterGoal: Number(e.target.value) }))} /></div>
             <div className="dt-field" style={{ flex: "0 0 100px" }}><label>Unità</label>
               <select value={data.waterUnit} onChange={(e) => setData((d) => ({ ...d, waterUnit: e.target.value }))} style={{ background: PAPER, border: `1px solid ${PAPER_LINE}`, color: INK, borderRadius: 10, padding: "10px 12px", fontSize: 15, width: "100%", height: 42 }}>
                 <option value="ml">ml</option>
@@ -1103,7 +1148,38 @@ function SettingsTab({ data, setData, exportData, importData }) {
           <button onClick={() => { if (confirm("Sei sicuro? Tutti i dati verranno eliminati.")) setData({ ...data, entries: {}, reminders: [], taskCompletions: {}, water: {} }); }} className="dt-btn-outline" style={{ color: "#D46A5C", borderColor: "#D46A5C26" }}><RotateCcw size={16} /> Resetta Dati</button>
         </div>
       </div>
-      <div style={{ textAlign: "center", color: MUTED, fontSize: 11, letterSpacing: 0.5 }}>DAYTRACKER V1.0 · TUTTI I DATI RESTANO SUL DISPOSITIVO</div>
+      <div style={{ textAlign: "center", color: MUTED, fontSize: 11, letterSpacing: 0.5 }}>DAYTRACKER V5.5 · TUTTI I DATI RESTANO SUL DISPOSITIVO</div>
+
+      {showAccountModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(21, 22, 27, 0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 20 }}>
+          <div className="dt-card" style={{ width: "100%", maxWidth: 380, display: "flex", flexDirection: "column", gap: 16, maxHeight: "90vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h3 style={{ margin: 0, color: INK, fontSize: 18, fontFamily: "'Fraunces', serif" }}>Impostazioni Account</h3>
+              <button onClick={() => setShowAccountModal(false)} className="dt-icon-btn"><X size={18} /></button>
+            </div>
+            <div className="dt-field"><label>Nome o Nickname</label><input type="text" value={accForm.name} onChange={(e) => setAccForm({ ...accForm, name: e.target.value })} placeholder="es. Mario" /></div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <div className="dt-field"><label>Anno di nascita</label><input type="number" value={accForm.birthYear} onChange={(e) => setAccForm({ ...accForm, birthYear: e.target.value })} placeholder="es. 1990" /></div>
+              <div className="dt-field"><label>Altezza (cm)</label><input type="number" value={accForm.heightCm} onChange={(e) => setAccForm({ ...accForm, heightCm: e.target.value })} placeholder="es. 175" /></div>
+            </div>
+            <div className="dt-field"><label>Peso (kg)</label><input type="number" value={accForm.weightKg} onChange={(e) => setAccForm({ ...accForm, weightKg: e.target.value })} placeholder="es. 70" /></div>
+            <button onClick={saveAccount} className="dt-btn-primary"><Check size={16} /> Salva</button>
+            <div style={{ height: 1, background: PAPER_LINE, margin: "4px 0" }} />
+            <button
+              onClick={() => {
+                if (confirm("Sei sicuro? Tutti i dati salvati verranno eliminati.")) {
+                  setData({ ...data, entries: {}, reminders: [], taskCompletions: {}, water: {} });
+                  setShowAccountModal(false);
+                }
+              }}
+              className="dt-btn-outline"
+              style={{ color: "#D46A5C", borderColor: "#D46A5C26" }}
+            >
+              <Trash2 size={16} /> Elimina tutti i dati
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1159,13 +1235,35 @@ export default function App() {
 
   useEffect(() => { if (data) saveData(data); }, [data]);
 
-  const exportData = () => {
+  const exportData = async () => {
     const json = JSON.stringify(data, null, 2);
+    const fileName = `daytracker-backup-${todayStr()}.json`;
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: json,
+          directory: Directory.Cache,
+          encoding: "utf8",
+        });
+        await Share.share({
+          title: "Backup DayTracker",
+          text: "Ecco il file di backup dei tuoi dati.",
+          url: result.uri,
+          dialogTitle: "Esporta Backup",
+        });
+        return;
+      } catch (err) {
+        console.error("Errore export nativo:", err);
+      }
+    }
+
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `daytracker-backup-${todayStr()}.json`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -1192,12 +1290,14 @@ export default function App() {
           <div className="dt-header-date">{fmtDateLabel(todayStr())}</div>
           <h1 className="dt-header-title">{tab === "today" ? "Oggi" : tab === "history" ? "Storico" : tab === "trends" ? "Trend" : "Personalizza"}</h1>
         </div>
+
         <div className="dt-main">
           {tab === "today" && <TodayTab data={data} setData={setData} uiState={uiState} setUiState={setUiState} />}
           {tab === "history" && <HistoryTab data={data} />}
           {tab === "trends" && <TrendsTab data={data} />}
           {tab === "settings" && <SettingsTab data={data} setData={setData} exportData={exportData} importData={importData} />}
         </div>
+
         <div className="dt-nav">
           <button onClick={() => setTab("today")} className={`dt-nav-btn ${tab === "today" ? "active" : ""}`}><Clock size={22} /><span>Oggi</span></button>
           <button onClick={() => setTab("history")} className={`dt-nav-btn ${tab === "history" ? "active" : ""}`}><Calendar size={22} /><span>Storico</span></button>
