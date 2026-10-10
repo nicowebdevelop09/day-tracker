@@ -994,7 +994,8 @@ function RemindersSection({ data, setData }) {
 
   useEffect(() => {
     if (!isWeb) {
-      import(/* @vite-ignore */ "@capacitor/local-notifications").then(({ LocalNotifications }) => {
+      const pkg = "@capacitor" + "/local-notifications";
+      import(/* @vite-ignore */ pkg).then(({ LocalNotifications }) => {
         LocalNotifications.requestPermissions().then((res) => { if (res.display !== "granted") setError("Permessi notifiche negati"); });
       }).catch(() => {});
     }
@@ -1008,7 +1009,8 @@ function RemindersSection({ data, setData }) {
     const [h, m] = time.split(":").map(Number);
     if (!isWeb) {
       try {
-        const { LocalNotifications } = await import(/* @vite-ignore */ "@capacitor/local-notifications");
+        const pkg = "@capacitor" + "/local-notifications";
+        const { LocalNotifications } = await import(/* @vite-ignore */ pkg);
         await LocalNotifications.schedule({
           notifications: [{
             id,
@@ -1029,7 +1031,8 @@ function RemindersSection({ data, setData }) {
   const removeReminder = async (id) => {
     if (!isWeb) { 
       try { 
-        const { LocalNotifications } = await import(/* @vite-ignore */ "@capacitor/local-notifications");
+        const pkg = "@capacitor" + "/local-notifications";
+        const { LocalNotifications } = await import(/* @vite-ignore */ pkg);
         await LocalNotifications.cancel({ notifications: [{ id }] }); 
       } catch (e) {} 
     }
@@ -1153,7 +1156,7 @@ function SettingsTab({ data, setData, exportData, importData }) {
           <button onClick={() => { if (confirm("Sei sicuro? Tutti i dati verranno eliminati.")) setData({ ...data, entries: {}, reminders: [], taskCompletions: {}, water: {} }); }} className="dt-btn-outline" style={{ color: "#D46A5C", borderColor: "#D46A5C26" }}><RotateCcw size={16} /> Resetta Dati</button>
         </div>
       </div>
-      <div style={{ textAlign: "center", color: MUTED, fontSize: 11, letterSpacing: 0.5 }}>DAYTRACKER V5.7 · TUTTI I DATI RESTANO SUL DISPOSITIVO</div>
+      <div style={{ textAlign: "center", color: MUTED, fontSize: 11, letterSpacing: 0.5 }}>DAYTRACKER V5.8 · TUTTI I DATI RESTANO SUL DISPOSITIVO</div>
 
       {showAccountModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(21, 22, 27, 0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 20 }}>
@@ -1246,9 +1249,11 @@ export default function App() {
 
     if (Capacitor.isNativePlatform()) {
       try {
+        const fsPkg = "@capacitor" + "/filesystem";
+        const sharePkg = "@capacitor" + "/share";
         const [{ Filesystem, Directory }, { Share }] = await Promise.all([
-          import(/* @vite-ignore */ "@capacitor/filesystem"),
-          import(/* @vite-ignore */ "@capacitor/share")
+          import(/* @vite-ignore */ fsPkg),
+          import(/* @vite-ignore */ sharePkg)
         ]);
         const result = await Filesystem.writeFile({
           path: fileName,
