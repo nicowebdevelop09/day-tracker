@@ -67,7 +67,9 @@ const timeToMins = (t) => {
 };
 
 const DEFAULT_PROFILE = { name: "", birthYear: null, heightCm: null, weightKg: null };
+
 const DEFAULT_TASKS = [{ id: "morning-routine", label: "Routine mattutina", color: "#4CB0A6" }];
+
 const DEFAULT_CATEGORY_ORDER = BASE_CATEGORIES.filter((c) => c.id !== "altro").map((c) => c.id);
 
 function loadData() {
@@ -83,7 +85,11 @@ function loadData() {
   }
 }
 function saveData(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // storage non disponibile
+  }
 }
 
 function getActiveCategories(data) {
@@ -122,70 +128,327 @@ const waterTotal = (list) => (list || []).reduce((s, e) => s + e.ml, 0);
 --------------------------------------------------------- */
 const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap');
+
   * { box-sizing: border-box; }
   html, body, #root { height: 100%; margin: 0; }
   body { background: ${PAPER}; }
-  .dt-app { background: ${PAPER}; min-height: 100vh; min-height: 100dvh; display: flex; justify-content: center; font-family: 'Inter', sans-serif; color: ${INK}; }
-  .dt-shell { width: 100%; max-width: 480px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; position: relative; }
-  .dt-header { padding: calc(env(safe-area-inset-top, 0px) + 24px) 20px 12px 20px; flex-shrink: 0; }
-  .dt-header-date { color: ${MUTED}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 4px; }
-  .dt-header-title { font-family: 'Fraunces', serif; color: ${INK}; font-size: 26px; font-weight: 500; margin: 0; }
-  .dt-main { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 24px 20px; -webkit-overflow-scrolling: touch; }
-  .dt-nav { background: ${PAPER_RAISED}; border-top: 1px solid ${PAPER_LINE}; padding: 8px 4px calc(env(safe-area-inset-bottom, 0px) + 8px) 4px; display: flex; justify-content: space-around; flex-shrink: 0; position: sticky; bottom: 0; }
-  .dt-nav-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 12px; background: transparent; border: none; color: ${MUTED}; }
+
+  .dt-app {
+    background: ${PAPER};
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+    color: ${INK};
+  }
+  .dt-shell {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .dt-header {
+    padding: calc(env(safe-area-inset-top, 0px) + 24px) 20px 12px 20px;
+    flex-shrink: 0;
+  }
+  .dt-header-date {
+    color: ${MUTED};
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 4px;
+  }
+  .dt-header-title {
+    font-family: 'Fraunces', serif;
+    color: ${INK};
+    font-size: 26px;
+    font-weight: 500;
+    margin: 0;
+  }
+  .dt-main {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 0 20px 24px 20px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dt-nav {
+    background: ${PAPER_RAISED};
+    border-top: 1px solid ${PAPER_LINE};
+    padding: 8px 4px calc(env(safe-area-inset-bottom, 0px) + 8px) 4px;
+    display: flex;
+    justify-content: space-around;
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+  }
+  .dt-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    background: transparent;
+    border: none;
+    color: ${MUTED};
+  }
   .dt-nav-btn.active { color: ${INK}; }
   .dt-nav-btn span { font-size: 9.5px; }
-  .dt-section-label { color: ${MUTED}; letter-spacing: 0.14em; text-transform: uppercase; font-size: 11px; font-weight: 500; margin-bottom: 8px; }
-  .dt-pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
-  .dt-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; border: 1px solid ${PAPER_LINE}; background: transparent; color: ${MUTED}; font-size: 14px; padding: 7px 14px; white-space: nowrap; }
-  .dt-card { background: ${PAPER_RAISED}; border: 1px solid ${PAPER_LINE}; border-radius: 18px; padding: 16px; }
+
+  .dt-section-label {
+    color: ${MUTED};
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .dt-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dt-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    border: 1px solid ${PAPER_LINE};
+    background: transparent;
+    color: ${MUTED};
+    font-size: 14px;
+    padding: 7px 14px;
+    white-space: nowrap;
+  }
+
+  .dt-card {
+    background: ${PAPER_RAISED};
+    border: 1px solid ${PAPER_LINE};
+    border-radius: 18px;
+    padding: 16px;
+  }
+
   .dt-field { flex: 1; display: flex; flex-direction: column; }
-  .dt-field label { color: ${MUTED}; font-size: 12px; margin-bottom: 4px; }
-  .dt-field input { background: ${PAPER}; border: 1px solid ${PAPER_LINE}; color: ${INK}; border-radius: 10px; padding: 10px 12px; font-size: 15px; font-family: inherit; width: 100%; }
+  .dt-field label {
+    color: ${MUTED};
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .dt-field input {
+    background: ${PAPER};
+    border: 1px solid ${PAPER_LINE};
+    color: ${INK};
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 15px;
+    font-family: inherit;
+    width: 100%;
+  }
   .dt-field input::-webkit-calendar-picker-indicator { filter: invert(0.7); }
-  .dt-btn-primary { width: 100%; background: ${INK}; color: ${PAPER}; border: none; border-radius: 12px; padding: 13px; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
-  .dt-btn-outline { width: 100%; background: ${PAPER_RAISED}; color: ${INK}; border: 1px solid ${PAPER_LINE}; border-radius: 12px; padding: 12px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  .dt-btn-primary {
+    width: 100%;
+    background: ${INK};
+    color: ${PAPER};
+    border: none;
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .dt-btn-outline {
+    width: 100%;
+    background: ${PAPER_RAISED};
+    color: ${INK};
+    border: 1px solid ${PAPER_LINE};
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
   .dt-error { color: #D46A5C; font-size: 13px; margin: 0; }
-  .dt-entry-row { display: flex; align-items: center; gap: 12px; background: ${PAPER_RAISED}; border: 1px solid ${PAPER_LINE}; border-radius: 14px; padding: 12px; }
+
+  .dt-entry-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: ${PAPER_RAISED};
+    border: 1px solid ${PAPER_LINE};
+    border-radius: 14px;
+    padding: 12px;
+  }
   .dt-entry-bar { width: 5px; height: 34px; border-radius: 4px; flex-shrink: 0; }
   .dt-entry-title { color: ${INK}; font-size: 15px; font-weight: 500; }
   .dt-entry-sub { color: ${INK}; opacity: 0.75; font-size: 12px; margin-top: 2px; }
-  .dt-entry-delete { background: transparent; border: none; color: ${MUTED}; padding: 6px; flex-shrink: 0; }
-  .dt-legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 16px; }
+  .dt-entry-delete {
+    background: transparent;
+    border: none;
+    color: ${MUTED};
+    padding: 6px;
+    flex-shrink: 0;
+  }
+
+  .dt-legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+    margin-top: 16px;
+  }
   .dt-legend-row { display: flex; align-items: center; gap: 8px; font-size: 14px; min-width: 0; }
   .dt-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .dt-legend-name { color: ${INK}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dt-legend-stat { color: ${MUTED}; margin-left: auto; font-size: 12px; white-space: nowrap; }
+
   .dt-wheel-center-value { font-family: 'Fraunces', serif; color: ${INK}; font-size: 24px; font-weight: 500; }
   .dt-wheel-center-label { color: ${MUTED}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+
+  .dt-history-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .dt-history-nav button { background: transparent; border: none; padding: 8px; color: ${INK}; }
+  .dt-history-nav button:disabled { color: ${PAPER_LINE}; }
   .dt-history-date { font-family: 'Fraunces', serif; color: ${INK}; font-size: 18px; text-transform: capitalize; }
+
+  .dt-list-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
+    border: 1px solid ${PAPER_LINE};
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: ${INK};
+    font-size: 14px;
+    text-align: left;
+    margin-bottom: 6px;
+  }
+  .dt-list-btn.active { background: ${PAPER_RAISED}; }
+  .dt-list-btn .stat { color: ${MUTED}; font-size: 12px; }
+
   .dt-empty { display: flex; flex-direction: column; align-items: center; padding: 70px 0; text-align: center; color: ${MUTED}; }
   .dt-empty p { font-size: 14px; margin-top: 12px; }
+
   .dt-reminder-note { color: ${MUTED}; font-size: 12px; line-height: 1.6; margin-bottom: 16px; }
-  .dt-cat-row { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid ${PAPER_LINE}; }
+
+  .dt-cat-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid ${PAPER_LINE};
+  }
   .dt-cat-row:last-child { border-bottom: none; }
   .dt-cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .dt-cat-label { color: ${INK}; font-size: 14px; flex: 1; }
   .dt-cat-label.hidden-cat { color: ${MUTED}; text-decoration: line-through; }
-  .dt-icon-btn { background: transparent; border: none; color: ${MUTED}; padding: 6px; flex-shrink: 0; }
-  .dt-hs-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; border-radius: 999px; outline: none; cursor: pointer; border: 1px solid ${PAPER_LINE}; }
-  .dt-hs-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 3px solid ${PAPER}; box-shadow: 0 0 0 1px ${PAPER_LINE}, 0 2px 4px rgba(0,0,0,0.4); }
+  .dt-icon-btn {
+    background: transparent;
+    border: none;
+    color: ${MUTED};
+    padding: 6px;
+    flex-shrink: 0;
+  }
+
+  .dt-swatch-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dt-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .dt-swatch.active { border-color: ${INK}; }
+  .dt-swatch-custom { border: 2px dashed ${PAPER_LINE}; background: ${PAPER}; cursor: pointer; }
+  .dt-swatch-custom.active { border-style: solid; border-color: ${INK}; }
+
+  .dt-hs-slider {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 14px; border-radius: 999px; outline: none; cursor: pointer;
+    border: 1px solid ${PAPER_LINE};
+  }
+  .dt-hs-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%;
+    background: #fff; border: 3px solid ${PAPER}; box-shadow: 0 0 0 1px ${PAPER_LINE}, 0 2px 4px rgba(0,0,0,0.4);
+  }
+  .dt-hs-slider::-moz-range-thumb {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #fff; border: 3px solid ${PAPER}; box-shadow: 0 0 0 1px ${PAPER_LINE}, 0 2px 4px rgba(0,0,0,0.4);
+  }
+
   .dt-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .dt-toggle-row .desc { color: ${MUTED}; font-size: 12px; margin-top: 2px; }
-  .dt-switch { width: 42px; height: 24px; border-radius: 999px; border: none; flex-shrink: 0; background: ${PAPER_LINE}; position: relative; }
+  .dt-switch {
+    width: 42px; height: 24px; border-radius: 999px; border: none; flex-shrink: 0;
+    background: ${PAPER_LINE}; position: relative;
+  }
   .dt-switch.on { background: ${WATER}; }
-  .dt-switch .knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: ${INK}; transition: transform .15s; }
+  .dt-switch .knob {
+    position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+    background: ${INK}; transition: transform .15s;
+  }
   .dt-switch.on .knob { transform: translateX(18px); }
+
   .dt-today-row { display: flex; gap: 22px; align-items: flex-start; }
   .dt-today-row > .dt-wheel-col { flex: 1; min-width: 0; }
-  .dt-side-col { width: 128px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 40px; }
-  .dt-water-col { width: 96px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .dt-side-col {
+    width: 128px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+  .dt-water-col {
+    width: 96px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
   .dt-water-ring-btn { background: transparent; border: none; padding: 0; }
   .dt-water-label { color: ${MUTED}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .dt-water-panel { margin-top: 16px; }
+  .dt-water-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .dt-water-goal-edit { display: flex; gap: 8px; align-items: center; }
   .dt-link-btn { background: transparent; border: none; color: ${MUTED}; font-size: 12px; display: flex; align-items: center; gap: 4px; padding: 4px; }
-  .dt-task-grid { width: 112px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-  .dt-task-square { aspect-ratio: 1; border-radius: 7px; background: ${PAPER_LINE}; border: none; display: flex; align-items: center; justify-content: center; }
-  .dt-task-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid ${PAPER_LINE}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: transparent; }
+
+  .dt-task-grid {
+    width: 112px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .dt-task-square {
+    aspect-ratio: 1;
+    border-radius: 7px;
+    background: ${PAPER_LINE};
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dt-task-check {
+    width: 24px; height: 24px; border-radius: 50%; border: 2px solid ${PAPER_LINE};
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: transparent;
+  }
+
   .dt-calendar { margin-bottom: 20px; }
   .dt-calendar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .dt-calendar-header button { background: transparent; border: none; color: ${INK}; padding: 6px; }
@@ -193,29 +456,50 @@ const GLOBAL_CSS = `
   .dt-calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 4px; }
   .dt-calendar-weekdays span { color: ${MUTED}; font-size: 10px; text-transform: uppercase; }
   .dt-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 4px; }
-  .dt-cal-day { aspect-ratio: 1; border-radius: 50%; border: none; background: transparent; color: ${INK}; font-size: 13px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .dt-cal-day {
+    aspect-ratio: 1; border-radius: 50%; border: none; background: transparent; color: ${INK};
+    font-size: 13px; display: flex; align-items: center; justify-content: center; position: relative;
+  }
   .dt-cal-day:disabled { color: ${PAPER_LINE}; }
-  .dt-cal-day.has-data::after { content: ""; position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: ${WATER}; }
+  .dt-cal-day.has-data::after {
+    content: ""; position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: ${WATER};
+  }
   .dt-cal-day.selected { background: ${INK}; color: ${PAPER}; font-weight: 600; }
   .dt-cal-day.selected::after { background: ${PAPER}; }
+
   .dt-accordion { margin-bottom: 16px; }
-  .dt-accordion-header { width: 100%; display: flex; align-items: center; justify-content: space-between; background: ${PAPER_RAISED}; border: 1px solid ${PAPER_LINE}; border-radius: 14px; padding: 12px 16px; }
+  .dt-accordion-header {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    background: ${PAPER_RAISED}; border: 1px solid ${PAPER_LINE}; border-radius: 14px; padding: 12px 16px;
+  }
   .dt-accordion-header .title { display: flex; align-items: center; gap: 8px; color: ${INK}; font-size: 14px; font-weight: 500; }
   .dt-accordion-header .chev { transition: transform .15s; }
   .dt-accordion-header .chev.open { transform: rotate(180deg); }
   .dt-accordion-body { margin-top: 12px; }
+
   .dt-order-row { display: flex; align-items: center; gap: 8px; padding: 10px 4px; border-bottom: 1px solid ${PAPER_LINE}; }
   .dt-order-row:last-child { border-bottom: none; }
   .dt-order-arrows { display: flex; flex-direction: column; gap: 0; }
   .dt-order-arrows button { background: transparent; border: none; color: ${MUTED}; padding: 2px; }
   .dt-order-arrows button:disabled { opacity: 0.25; }
+
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-thumb { background: ${PAPER_LINE}; border-radius: 4px; }
 `;
 
+/* --------------------------- UI atoms --------------------------- */
+
 function Pill({ active, color, onClick, children }) {
   return (
-    <button onClick={onClick} className="dt-pill" style={{ borderColor: active ? color : PAPER_LINE, background: active ? `${color}26` : "transparent", color: active ? INK : MUTED }}>
+    <button
+      onClick={onClick}
+      className="dt-pill"
+      style={{
+        borderColor: active ? color : PAPER_LINE,
+        background: active ? `${color}26` : "transparent",
+        color: active ? INK : MUTED,
+      }}
+    >
       {children}
     </button>
   );
@@ -260,7 +544,6 @@ function hsvToHex(h, s) {
   const toHex = (v) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
-
 function hexToHueSat(hex) {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
   const g = parseInt(hex.slice(3, 5), 16) / 255;
@@ -276,7 +559,6 @@ function hexToHueSat(hex) {
   const s = max === 0 ? 0 : (d / max) * 100;
   return { h, s };
 }
-
 const PURE_RED = "#FF0000";
 
 function SwatchPicker({ value, onChange }) {
@@ -298,9 +580,13 @@ function SwatchPicker({ value, onChange }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <button type="button" onClick={openPicker} style={{ width: 44, height: 44, borderRadius: "50%", background: value, border: `2px solid ${PAPER_LINE}`, flexShrink: 0, padding: 0 }} />
+        <button
+          type="button" onClick={openPicker}
+          style={{ width: 44, height: 44, borderRadius: "50%", background: value, border: `2px solid ${PAPER_LINE}`, flexShrink: 0, padding: 0 }}
+        />
         <div style={{ color: MUTED, fontSize: 13 }}>Tocca il cerchio per scegliere il colore</div>
       </div>
+
       {open && (
         <div className="dt-card" style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
@@ -314,7 +600,13 @@ function SwatchPicker({ value, onChange }) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 18 }}>
             <button type="button" onClick={() => setOpen(false)} className="dt-btn-outline" style={{ width: "auto", padding: "10px 18px" }}>Annulla</button>
             <div style={{ width: 48, height: 48, borderRadius: "50%", background: previewHex, border: `2px solid ${PAPER_LINE}`, flexShrink: 0 }} />
-            <button type="button" onClick={() => { onChange(previewHex); setOpen(false); }} className="dt-btn-primary" style={{ width: "auto", padding: "10px 18px" }}>Conferma</button>
+            <button
+              type="button"
+              onClick={() => { onChange(previewHex); setOpen(false); }}
+              className="dt-btn-primary" style={{ width: "auto", padding: "10px 18px" }}
+            >
+              Conferma
+            </button>
           </div>
         </div>
       )}
@@ -331,7 +623,10 @@ function WaterRing({ totalMl, goalMl, size = 64, onClick }) {
     <Tag_ onClick={onClick} className={onClick ? "dt-water-ring-btn" : undefined} style={{ position: "relative", width: size, height: size }}>
       <svg viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)", width: size, height: size }}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={PAPER_LINE} strokeWidth="6" />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={WATER} strokeWidth="6" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)} />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={WATER} strokeWidth="6" strokeLinecap="round"
+          strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
+        />
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <b style={{ fontSize: size > 56 ? 13 : 11, color: INK }}>{Math.round(pct * 100)}%</b>
@@ -340,6 +635,8 @@ function WaterRing({ totalMl, goalMl, size = 64, onClick }) {
     </Tag_>
   );
 }
+
+/* --------------------------- Day Wheel (pie hand-drawn SVG) --------------------------- */
 
 function groupEntries(entries) {
   const groups = {};
@@ -352,60 +649,79 @@ function groupEntries(entries) {
   return Object.values(groups);
 }
 
+function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+  return {
+    x: centerX + radius * Math.cos(angleInRadians),
+    y: centerY + radius * Math.sin(angleInRadians)
+  };
+}
+
+function describeArc(x, y, innerRadius, outerRadius, startAngle, endAngle) {
+  const startOuter = polarToCartesian(x, y, outerRadius, endAngle);
+  const endOuter = polarToCartesian(x, y, outerRadius, startAngle);
+  const startInner = polarToCartesian(x, y, innerRadius, endAngle);
+  const endInner = polarToCartesian(x, y, innerRadius, startAngle);
+
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+  return [
+    "M", startOuter.x, startOuter.y,
+    "A", outerRadius, outerRadius, 0, largeArcFlag, 0, endOuter.x, endOuter.y,
+    "L", endInner.x, endInner.y,
+    "A", innerRadius, innerRadius, 0, largeArcFlag, 1, startInner.x, startInner.y,
+    "Z"
+  ].join(" ");
+}
+
 function DayWheel({ entries }) {
   const totals = useMemo(() => {
     const slices = groupEntries(entries);
     const tracked = slices.reduce((s, d) => s + d.value, 0);
     const rest = Math.max(MINUTES_PER_DAY - tracked, 0);
-    if (rest > 0) slices.push({ id: "altro", name: BASE_MAP.altro.label, value: rest, color: BASE_MAP.altro.color });
+    if (rest > 0) {
+      slices.push({ id: "altro", name: BASE_MAP.altro.label, value: rest, color: BASE_MAP.altro.color });
+    }
     return slices;
   }, [entries]);
 
   const trackedTotal = totals.filter((d) => d.id !== "altro").reduce((s, d) => s + d.value, 0);
 
   const size = 220;
-  const strokeWidth = 40;
-  const radius = (size - strokeWidth) / 2;
   const center = size / 2;
-  const totalValue = totals.reduce((sum, d) => sum + d.value, 0);
-  let cumulativePercent = 0;
+  const outerRadius = 110;
+  const innerRadius = 70;
 
-  const getCoordinatesForPercent = (percent) => {
-    const x = Math.cos(2 * Math.PI * (percent - 0.25));
-    const y = Math.sin(2 * Math.PI * (percent - 0.25));
-    return [center + x * radius, center + y * radius];
-  };
+  let cumulativeAngle = 0;
+  const svgSlices = totals.map((slice) => {
+    const angle = (slice.value / MINUTES_PER_DAY) * 360;
+    if (angle <= 0) return null;
+    const startAngle = cumulativeAngle;
+    const endAngle = cumulativeAngle + angle;
+    cumulativeAngle = endAngle;
+
+    if (angle >= 359.99) {
+      return (
+        <circle
+          key={slice.id}
+          cx={center}
+          cy={center}
+          r={(outerRadius + innerRadius) / 2}
+          fill="none"
+          stroke={slice.color}
+          strokeWidth={outerRadius - innerRadius}
+        />
+      );
+    }
+
+    const pathData = describeArc(center, center, innerRadius, outerRadius, startAngle, endAngle);
+    return <path key={slice.id} d={pathData} fill={slice.color} />;
+  });
 
   return (
     <div style={{ position: "relative", height: 260, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {totals.length <= 1 ? (
-          <circle cx={center} cy={center} r={radius} fill="none" stroke={totals[0]?.color || BASE_MAP.altro.color} strokeWidth={strokeWidth} />
-        ) : (
-          totals.map((slice) => {
-            if (slice.value === 0) return null;
-            const startPercent = cumulativePercent;
-            const slicePercent = slice.value / totalValue;
-            cumulativePercent += slicePercent;
-            const endPercent = cumulativePercent;
-
-            if (slicePercent >= 1) {
-              return <circle key={slice.id} cx={center} cy={center} r={radius} fill="none" stroke={slice.color} strokeWidth={strokeWidth} />;
-            }
-
-            const [startX, startY] = getCoordinatesForPercent(startPercent);
-            const gap = 0.002;
-            const [endX, endY] = getCoordinatesForPercent(Math.max(startPercent, endPercent - gap));
-            const largeArcFlag = slicePercent > 0.5 ? 1 : 0;
-
-            const pathData = [
-              `M ${startX} ${startY}`,
-              `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`
-            ].join(" ");
-
-            return <path key={slice.id} d={pathData} fill="none" stroke={slice.color} strokeWidth={strokeWidth} />;
-          })
-        )}
+        {svgSlices}
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
         <span className="dt-wheel-center-value">{minsToHM(trackedTotal)}</span>
@@ -421,7 +737,9 @@ function Legend2({ entries }) {
     const tracked = slices.reduce((s, d) => s + d.value, 0);
     const rest = Math.max(MINUTES_PER_DAY - tracked, 0);
     const list = slices.map((s) => ({ ...s, pct: Math.round((s.value / MINUTES_PER_DAY) * 100) }));
-    if (rest > 0) list.push({ id: "altro", name: BASE_MAP.altro.label, color: BASE_MAP.altro.color, value: rest, pct: Math.round((rest / MINUTES_PER_DAY) * 100) });
+    if (rest > 0) {
+      list.push({ id: "altro", name: BASE_MAP.altro.label, color: BASE_MAP.altro.color, value: rest, pct: Math.round((rest / MINUTES_PER_DAY) * 100) });
+    }
     return list;
   }, [entries]);
 
@@ -440,8 +758,11 @@ function Legend2({ entries }) {
   );
 }
 
+/* --------------------------- Today Tab --------------------------- */
+
 function TasksSection({ data, setData, date }) {
   const completed = data.taskCompletions[date] || [];
+
   const toggleTask = (id) => {
     setData((d) => {
       const list = d.taskCompletions[date] || [];
@@ -450,7 +771,9 @@ function TasksSection({ data, setData, date }) {
     });
   };
 
-  if (data.tasks.length === 0) return <div style={{ color: MUTED, fontSize: 13 }}>Nessun task. Aggiungine uno da Personalizza → Attività.</div>;
+  if (data.tasks.length === 0) {
+    return <div style={{ color: MUTED, fontSize: 13 }}>Nessun task. Aggiungine uno da Personalizza → Attività.</div>;
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -461,7 +784,9 @@ function TasksSection({ data, setData, date }) {
             <button onClick={() => toggleTask(t.id)} className="dt-task-check" style={{ borderColor: t.color, background: done ? t.color : "transparent" }}>
               {done && <Check size={13} color="#fff" />}
             </button>
-            <div style={{ flex: 1, minWidth: 0 }}><div className="dt-entry-title" style={{ textDecoration: done ? "line-through" : "none" }}>{t.label}</div></div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="dt-entry-title" style={{ textDecoration: done ? "line-through" : "none" }}>{t.label}</div>
+            </div>
           </div>
         );
       })}
@@ -476,14 +801,20 @@ function TasksManageSection({ data, setData }) {
 
   const addTask = () => {
     setError("");
-    if (!newLabel.trim()) { setError("Inserisci un nome per il task"); return; }
+    if (!newLabel.trim()) {
+      setError("Inserisci un nome per il task");
+      return;
+    }
     const task = { id: crypto.randomUUID(), label: newLabel.trim(), color: newColor };
     setData((d) => ({ ...d, tasks: [...d.tasks, task] }));
     setNewLabel("");
     setNewColor(PURE_RED);
   };
 
-  const removeTask = (id) => { setData((d) => ({ ...d, tasks: d.tasks.filter((t) => t.id !== id) })); };
+  const removeTask = (id) => {
+    setData((d) => ({ ...d, tasks: d.tasks.filter((t) => t.id !== id) }));
+  };
+
   const moveTask = (id, dir) => {
     setData((d) => {
       const arr = [...d.tasks];
@@ -508,16 +839,23 @@ function TasksManageSection({ data, setData }) {
               </div>
               <span className="dt-cat-dot" style={{ background: t.color }} />
               <span className="dt-cat-label">{t.label}</span>
-              <button onClick={() => removeTask(t.id)} className="dt-icon-btn"><Trash2 size={16} /></button>
+              <button onClick={() => removeTask(t.id)} className="dt-icon-btn">
+                <Trash2 size={16} />
+              </button>
             </div>
           ))}
         </div>
       )}
       <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div className="dt-field"><label>Nuovo task</label><input type="text" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="es. Meditazione, Leggere..." /></div>
+        <div className="dt-field">
+          <label>Nuovo task</label>
+          <input type="text" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="es. Meditazione, Leggere..." />
+        </div>
         <SwatchPicker value={newColor} onChange={setNewColor} />
         {error && <p className="dt-error">{error}</p>}
-        <button onClick={addTask} className="dt-btn-primary"><Plus size={16} /> Aggiungi task</button>
+        <button onClick={addTask} className="dt-btn-primary">
+          <Plus size={16} /> Aggiungi task
+        </button>
       </div>
     </div>
   );
@@ -526,6 +864,7 @@ function TasksManageSection({ data, setData }) {
 function TaskGrid({ data, setData, date }) {
   const completed = data.taskCompletions[date] || [];
   const shown = data.tasks.slice(0, 12);
+
   const toggleTask = (id) => {
     setData((d) => {
       const list = d.taskCompletions[date] || [];
@@ -540,13 +879,17 @@ function TaskGrid({ data, setData, date }) {
     <div className="dt-task-grid">
       {shown.map((t) => {
         const done = completed.includes(t.id);
-        return (<button key={t.id} onClick={() => toggleTask(t.id)} className="dt-task-square" title={t.label}>{done && <Check size={16} color="#4FA37B" strokeWidth={3} />}</button>);
+        return (
+          <button key={t.id} onClick={() => toggleTask(t.id)} className="dt-task-square" title={t.label}>
+            {done && <Check size={16} color="#4FA37B" strokeWidth={3} />}
+          </button>
+        );
       })}
     </div>
   );
 }
 
-function TodayTab({ data, setData, uiState, setUiState }) {
+function TodayTab({ data, setData, tasksOpen, setTasksOpen, activitiesOpen, setActivitiesOpen, waterOpen, setWaterOpen }) {
   const [date, setDate] = useState(todayStr());
   useEffect(() => {
     const id = setInterval(() => {
@@ -561,6 +904,7 @@ function TodayTab({ data, setData, uiState, setUiState }) {
     d.setDate(d.getDate() - 1);
     return localDateStr(d);
   }, [date]);
+  const [entryDate, setEntryDate] = useState(date);
 
   const entries = data.entries[date] || [];
   const waterEntries = data.water[date] || [];
@@ -568,6 +912,7 @@ function TodayTab({ data, setData, uiState, setUiState }) {
   const activeCats = useMemo(() => getActiveCategories(data), [data.hiddenBase, data.customCategories]);
 
   const [waterInput, setWaterInput] = useState("");
+
   const addWater = () => {
     const raw = parseFloat(waterInput.replace(",", "."));
     if (!raw || raw <= 0) return;
@@ -576,104 +921,199 @@ function TodayTab({ data, setData, uiState, setUiState }) {
     setData((d) => ({ ...d, water: { ...d.water, [date]: [...(d.water[date] || []), entry] } }));
     setWaterInput("");
   };
-  const removeWater = (id) => { setData((d) => ({ ...d, water: { ...d.water, [date]: (d.water[date] || []).filter((w) => w.id !== id) } })); };
+  const removeWater = (id) => {
+    setData((d) => ({ ...d, water: { ...d.water, [date]: (d.water[date] || []).filter((w) => w.id !== id) } }));
+  };
 
-  const [form, setForm] = useState({ mode: "category", categoryId: activeCats[0]?.id || null, onetimeLabel: "", onetimeColor: PURE_RED, start: "", end: "" });
+  const [form, setForm] = useState({
+    mode: "category",
+    categoryId: activeCats[0]?.id || null,
+    onetimeLabel: "",
+    onetimeColor: PURE_RED,
+    start: "",
+    end: "",
+  });
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!data.allowOnetime && form.mode === "onetime") setForm((f) => ({ ...f, mode: "category" }));
+    if (!data.allowOnetime && form.mode === "onetime") {
+      setForm((f) => ({ ...f, mode: "category" }));
+    }
   }, [data.allowOnetime]);
 
   const addEntry = () => {
     setError("");
-    if (!form.start || !form.end) { setError("Inserisci orario di inizio e fine"); return; }
+    if (!form.start || !form.end) {
+      setError("Inserisci orario di inizio e fine");
+      return;
+    }
     const startMins = timeToMins(form.start);
     const endMins = timeToMins(form.end);
-    const cat = activeCats.find((c) => c.id === form.categoryId) || activeCats[0];
-    const isOnetime = form.mode === "onetime";
 
-    if (!isOnetime && !cat) { setError("Crea prima almeno una categoria"); return; }
-    if (isOnetime && !form.onetimeLabel.trim()) { setError("Inserisci un nome per l'attività"); return; }
+    let baseDetails;
+    if (form.mode === "onetime") {
+      if (!form.onetimeLabel.trim()) {
+        setError("Inserisci un nome per l'attività");
+        return;
+      }
+      baseDetails = {
+        category: null,
+        label: form.onetimeLabel.trim(),
+        color: form.onetimeColor,
+      };
+    } else {
+      const cat = activeCats.find((c) => c.id === form.categoryId) || activeCats[0];
+      if (!cat) {
+        setError("Crea prima almeno una categoria");
+        return;
+      }
+      baseDetails = {
+        category: cat.id,
+        label: cat.label,
+        color: cat.color,
+      };
+    }
 
-    const label = isOnetime ? form.onetimeLabel.trim() : cat.label;
-    const color = isOnetime ? form.onetimeColor : cat.color;
-    const categoryId = isOnetime ? null : cat.id;
+    // Gestione automatica attività a cavallo della mezzanotte (es. 23:00 - 08:00)
+    if (endMins <= startMins) {
+      const dur1 = 1440 - startMins;
+      const entry1 = {
+        id: crypto.randomUUID(),
+        ...baseDetails,
+        start: form.start,
+        end: "24:00",
+        duration: dur1,
+      };
 
-    if (endMins < startMins) {
-      const durYesterday = MINUTES_PER_DAY - startMins;
-      const durToday = endMins;
-      const entryYesterday = { id: crypto.randomUUID(), category: categoryId, label, color, start: form.start, end: "24:00", duration: durYesterday };
-      const entryToday = { id: crypto.randomUUID(), category: categoryId, label, color, start: "00:00", end: form.end, duration: durToday };
+      const dur2 = endMins;
+      const entry2 = {
+        id: crypto.randomUUID(),
+        ...baseDetails,
+        start: "00:00",
+        end: form.end,
+        duration: dur2,
+      };
+
+      const nextDateObj = new Date(entryDate + "T00:00:00");
+      nextDateObj.setDate(nextDateObj.getDate() + 1);
+      const nextDateStr = localDateStr(nextDateObj);
 
       setData((d) => {
-        const prevEntries = d.entries || {};
+        const day1Entries = [...(d.entries[entryDate] || []), entry1].sort((a, b) => a.start.localeCompare(b.start));
+        const day2Entries = [...(d.entries[nextDateStr] || []), entry2].sort((a, b) => a.start.localeCompare(b.start));
         return {
           ...d,
           entries: {
-            ...prevEntries,
-            [yesterdayStr]: [...(prevEntries[yesterdayStr] || []), entryYesterday].sort((a, b) => a.start.localeCompare(b.start)),
-            [date]: [...(prevEntries[date] || []), entryToday].sort((a, b) => a.start.localeCompare(b.start)),
+            ...d.entries,
+            [entryDate]: day1Entries,
+            [nextDateStr]: day2Entries,
           },
         };
       });
     } else {
       const dur = endMins - startMins;
-      if (dur <= 0) { setError("L'orario di fine deve essere diverso dall'orario di inizio"); return; }
-      const entry = { id: crypto.randomUUID(), category: categoryId, label, color, start: form.start, end: form.end, duration: dur };
-
-      setData((d) => {
-        const prevEntries = d.entries || {};
-        return {
-          ...d,
-          entries: {
-            ...prevEntries,
-            [date]: [...(prevEntries[date] || []), entry].sort((a, b) => a.start.localeCompare(b.start)),
-          },
-        };
-      });
+      const entry = {
+        id: crypto.randomUUID(),
+        ...baseDetails,
+        start: form.start,
+        end: form.end,
+        duration: dur,
+      };
+      setData((d) => ({
+        ...d,
+        entries: { ...d.entries, [entryDate]: [...(d.entries[entryDate] || []), entry].sort((a, b) => a.start.localeCompare(b.start)) },
+      }));
     }
+
     setForm((f) => ({ ...f, start: "", end: "", onetimeLabel: "", onetimeColor: PURE_RED }));
   };
 
-  const removeEntry = (id) => { setData((d) => ({ ...d, entries: { ...d.entries, [date]: (d.entries[date] || []).filter((e) => e.id !== id) } })); };
+  const removeEntry = (id) => {
+    setData((d) => ({ ...d, entries: { ...d.entries, [date]: (d.entries[date] || []).filter((e) => e.id !== id) } }));
+  };
 
   return (
     <div>
       <div className="dt-today-row">
-        <div className="dt-wheel-col"><DayWheel entries={entries} /></div>
+        <div className="dt-wheel-col">
+          <DayWheel entries={entries} />
+        </div>
         <div className="dt-side-col">
-          <div className="dt-water-col"><WaterRing totalMl={waterMl} goalMl={data.waterGoal} size={88} /><span className="dt-water-label">Acqua</span></div>
+          <div className="dt-water-col">
+            <WaterRing totalMl={waterMl} goalMl={data.waterGoal} size={88} />
+            <span className="dt-water-label">Acqua</span>
+          </div>
           <TaskGrid data={data} setData={setData} date={date} />
         </div>
       </div>
       <Legend2 entries={entries} />
+
       <div style={{ marginTop: 32 }}>
-        <AccordionRow title="Task" icon={ListChecks} open={uiState.tasksOpen} onToggle={() => setUiState((s) => ({ ...s, tasksOpen: !s.tasksOpen }))}>
+        <AccordionRow title="Task" icon={ListChecks} open={tasksOpen} onToggle={() => setTasksOpen((o) => !o)}>
           <TasksSection data={data} setData={setData} date={date} />
         </AccordionRow>
-        
-        <AccordionRow title="Attività" icon={Clock} open={uiState.activitiesOpen} onToggle={() => setUiState((s) => ({ ...s, activitiesOpen: !s.activitiesOpen }))}>
+
+        <AccordionRow title="Attività" icon={Clock} open={activitiesOpen} onToggle={() => setActivitiesOpen((o) => !o)}>
           <SectionLabel>Registra tempo</SectionLabel>
           <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div className="dt-pill-row">
-              {activeCats.map((c) => (<Pill key={c.id} active={form.mode === "category" && form.categoryId === c.id} color={c.color} onClick={() => setForm((f) => ({ ...f, mode: "category", categoryId: c.id }))}><c.Icon size={13} /> {c.label}</Pill>))}
-              {data.allowOnetime && (<Pill active={form.mode === "onetime"} color={INK} onClick={() => setForm((f) => ({ ...f, mode: "onetime" }))}><Plus size={13} /> Una tantum</Pill>)}
+              <Pill active={entryDate === date} color={INK} onClick={() => setEntryDate(date)}>Oggi</Pill>
+              <Pill active={entryDate === yesterdayStr} color={INK} onClick={() => setEntryDate(yesterdayStr)}>Ieri</Pill>
             </div>
+            {entryDate === yesterdayStr && (
+              <div style={{ color: MUTED, fontSize: 12 }}>
+                Stai registrando un'attività per <b style={{ color: INK }}>{fmtDateLabel(yesterdayStr)}</b> — utile per le ore prima di mezzanotte.
+              </div>
+            )}
+            <div className="dt-pill-row">
+              {activeCats.map((c) => (
+                <Pill
+                  key={c.id}
+                  active={form.mode === "category" && form.categoryId === c.id}
+                  color={c.color}
+                  onClick={() => setForm((f) => ({ ...f, mode: "category", categoryId: c.id }))}
+                >
+                  <c.Icon size={13} /> {c.label}
+                </Pill>
+              ))}
+              {data.allowOnetime && (
+                <Pill active={form.mode === "onetime"} color={INK} onClick={() => setForm((f) => ({ ...f, mode: "onetime" }))}>
+                  <Plus size={13} /> Una tantum
+                </Pill>
+              )}
+            </div>
+
             {form.mode === "onetime" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div className="dt-field"><label>Nome attività</label><input type="text" value={form.onetimeLabel} onChange={(e) => setForm((f) => ({ ...f, onetimeLabel: e.target.value }))} placeholder="es. Trasloco, dentista..." /></div>
+                <div className="dt-field">
+                  <label>Nome attività</label>
+                  <input
+                    type="text"
+                    value={form.onetimeLabel}
+                    onChange={(e) => setForm((f) => ({ ...f, onetimeLabel: e.target.value }))}
+                    placeholder="es. Trasloco, dentista..."
+                  />
+                </div>
                 <SwatchPicker value={form.onetimeColor} onChange={(c) => setForm((f) => ({ ...f, onetimeColor: c }))} />
               </div>
             )}
+
             <div style={{ display: "flex", gap: 12 }}>
-              <div className="dt-field"><label>Inizio</label><input type="time" value={form.start} onChange={(e) => setForm((f) => ({ ...f, start: e.target.value }))} /></div>
-              <div className="dt-field"><label>Fine</label><input type="time" value={form.end} onChange={(e) => setForm((f) => ({ ...f, end: e.target.value }))} /></div>
+              <div className="dt-field">
+                <label>Inizio</label>
+                <input type="time" value={form.start} onChange={(e) => setForm((f) => ({ ...f, start: e.target.value }))} />
+              </div>
+              <div className="dt-field">
+                <label>Fine</label>
+                <input type="time" value={form.end} onChange={(e) => setForm((f) => ({ ...f, end: e.target.value }))} />
+              </div>
             </div>
-            <div style={{ color: MUTED, fontSize: 12, lineHeight: 1.4 }}>Se l'orario di fine supera la mezzanotte (es. 23:00 - 08:00), il tempo verrà diviso e assegnato automaticamente tra ieri e oggi.</div>
             {error && <p className="dt-error">{error}</p>}
-            <button onClick={addEntry} className="dt-btn-primary"><Plus size={16} /> Aggiungi attività</button>
+            <button onClick={addEntry} className="dt-btn-primary">
+              <Plus size={16} /> Aggiungi attività
+            </button>
           </div>
+
           {entries.length > 0 && (
             <div style={{ marginTop: 24 }}>
               <SectionLabel>Attività di oggi</SectionLabel>
@@ -683,8 +1123,13 @@ function TodayTab({ data, setData, uiState, setUiState }) {
                   return (
                     <div key={e.id} className="dt-entry-row">
                       <span className="dt-entry-bar" style={{ background: disp.color }} />
-                      <div style={{ flex: 1, minWidth: 0 }}><div className="dt-entry-title">{disp.label}</div><div className="dt-entry-sub">{e.start} – {e.end} · {minsToHM(e.duration)}</div></div>
-                      <button onClick={() => removeEntry(e.id)} className="dt-entry-delete"><Trash2 size={15} /></button>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="dt-entry-title">{disp.label}</div>
+                        <div className="dt-entry-sub">{e.start} – {e.end} · {minsToHM(e.duration)}</div>
+                      </div>
+                      <button onClick={() => removeEntry(e.id)} className="dt-entry-delete">
+                        <Trash2 size={15} />
+                      </button>
                     </div>
                   );
                 })}
@@ -692,518 +1137,982 @@ function TodayTab({ data, setData, uiState, setUiState }) {
             </div>
           )}
         </AccordionRow>
-        
-        <AccordionRow title="Acqua" icon={Droplet} open={uiState.waterOpen} onToggle={() => setUiState((s) => ({ ...s, waterOpen: !s.waterOpen }))}>
+
+        <AccordionRow title="Acqua" icon={Droplet} open={waterOpen} onToggle={() => setWaterOpen((o) => !o)}>
           <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div className="dt-field"><label>Aggiungi {data.waterUnit === "L" ? "Litri" : "ml"}</label><input type="number" step="0.1" value={waterInput} onChange={(e) => setWaterInput(e.target.value)} placeholder={`es. ${data.waterUnit === "L" ? "0.5" : "500"}`} /></div>
-            <button onClick={addWater} className="dt-btn-primary"><Plus size={16} /> Aggiungi {data.waterUnit}</button>
-          </div>
-          {waterEntries.length > 0 && (
-            <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 8 }}>
-              {waterEntries.map((w) => (
-                <div key={w.id} className="dt-entry-row" style={{ padding: "8px 12px" }}>
-                  <Droplet size={16} color={WATER} />
-                  <div style={{ flex: 1, color: INK, fontSize: 14 }}>{formatWater(w.ml)} <span style={{ color: MUTED, fontSize: 12, marginLeft: 6 }}>alle {w.time}</span></div>
-                  <button onClick={() => removeWater(w.id)} className="dt-entry-delete" style={{ padding: 4 }}><Trash2 size={14} /></button>
-                </div>
-              ))}
+            <div style={{ color: MUTED, fontSize: 13 }}>Obiettivo: {formatWater(data.waterGoal)}</div>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type="number" inputMode="decimal" value={waterInput} onChange={(e) => setWaterInput(e.target.value)}
+                placeholder={data.waterUnit === "L" ? "litri" : "ml"}
+                style={{ flex: 1, minWidth: 0, background: PAPER, border: `1px solid ${PAPER_LINE}`, color: INK, borderRadius: 10, padding: "10px 12px", fontSize: 15 }}
+              />
+              <button onClick={addWater} className="dt-btn-primary" style={{ width: "auto", flexShrink: 0, padding: "10px 16px", whiteSpace: "nowrap" }}>
+                <Plus size={16} /> Aggiungi
+              </button>
             </div>
-          )}
+
+            {waterEntries.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                {waterEntries.map((w) => (
+                  <div key={w.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                    <Droplet size={13} style={{ color: WATER }} />
+                    <span style={{ color: INK }}>{formatWater(w.ml)}</span>
+                    <span style={{ color: MUTED }}>· {w.time}</span>
+                    <button onClick={() => removeWater(w.id)} className="dt-entry-delete" style={{ marginLeft: "auto" }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </AccordionRow>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------- Categories Tab --------------------------- */
+
+function ActivitiesSection({ data, setData }) {
+  const [newLabel, setNewLabel] = useState("");
+  const [newColor, setNewColor] = useState(PURE_RED);
+  const [error, setError] = useState("");
+
+  const activeCats = useMemo(() => getActiveCategories(data), [data.hiddenBase, data.customCategories, data.categoryOrder]);
+  const activeIds = useMemo(() => new Set(activeCats.map((c) => c.id)), [activeCats]);
+
+  const toggleHidden = (id) => {
+    setData((d) => {
+      const hidden = d.hiddenBase.includes(id) ? d.hiddenBase.filter((x) => x !== id) : [...d.hiddenBase, id];
+      return { ...d, hiddenBase: hidden };
+    });
+  };
+
+  const addCustom = () => {
+    setError("");
+    if (!newLabel.trim()) {
+      setError("Inserisci un nome per la categoria");
+      return;
+    }
+    const cat = { id: crypto.randomUUID(), label: newLabel.trim(), color: newColor };
+    setData((d) => ({ ...d, customCategories: [...d.customCategories, cat], categoryOrder: [...d.categoryOrder, cat.id] }));
+    setNewLabel("");
+    setNewColor(PURE_RED);
+  };
+
+  const removeCustom = (id) => {
+    setData((d) => ({
+      ...d,
+      customCategories: d.customCategories.filter((c) => c.id !== id),
+      categoryOrder: d.categoryOrder.filter((x) => x !== id),
+    }));
+  };
+
+  const moveCategory = (id, dir) => {
+    setData((d) => ({ ...d, categoryOrder: moveInOrder(d.categoryOrder, activeIds, id, dir) }));
+  };
+
+  return (
+    <div>
+      <div className="dt-card" style={{ marginBottom: 24 }}>
+        <div className="dt-toggle-row">
+          <div>
+            <div style={{ color: INK, fontSize: 14 }}>Categoria "una tantum"</div>
+            <div className="desc">Permette di registrare un'attività temporanea non salvata in elenco</div>
+          </div>
+          <Switch on={data.allowOnetime} onClick={() => setData((d) => ({ ...d, allowOnetime: !d.allowOnetime }))} />
+        </div>
+      </div>
+
+      <SectionLabel>Ordine attività</SectionLabel>
+      <div className="dt-card" style={{ marginBottom: 24 }}>
+        {activeCats.map((c, i) => (
+          <div key={c.id} className="dt-order-row">
+            <div className="dt-order-arrows">
+              <button onClick={() => moveCategory(c.id, -1)} disabled={i === 0}><ArrowUp size={13} /></button>
+              <button onClick={() => moveCategory(c.id, 1)} disabled={i === activeCats.length - 1}><ArrowDown size={13} /></button>
+            </div>
+            <span className="dt-cat-dot" style={{ background: c.color }} />
+            <span className="dt-cat-label">{c.label}</span>
+            <button onClick={() => (c.custom ? removeCustom(c.id) : toggleHidden(c.id))} className="dt-icon-btn">
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ))}
+        {activeCats.length === 0 && (
+          <div style={{ color: MUTED, fontSize: 13, padding: "8px 4px" }}>Nessuna attività attiva.</div>
+        )}
+      </div>
+
+      {data.hiddenBase.length > 0 && (
+        <>
+          <SectionLabel>Categorie base eliminate</SectionLabel>
+          <div className="dt-card" style={{ marginBottom: 24 }}>
+            {BASE_CATEGORIES.filter((c) => data.hiddenBase.includes(c.id)).map((c) => (
+              <div key={c.id} className="dt-cat-row">
+                <span className="dt-cat-dot" style={{ background: c.color, opacity: 0.4 }} />
+                <span className="dt-cat-label hidden-cat">{c.label}</span>
+                <button onClick={() => toggleHidden(c.id)} className="dt-icon-btn">
+                  <RotateCcw size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <SectionLabel>Nuova categoria</SectionLabel>
+      <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+        <div className="dt-field">
+          <label>Nome</label>
+          <input type="text" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="es. Studio, Casa..." />
+        </div>
+        <SwatchPicker value={newColor} onChange={setNewColor} />
+        {error && <p className="dt-error">{error}</p>}
+        <button onClick={addCustom} className="dt-btn-primary">
+          <Plus size={16} /> Crea categoria
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------- Water settings section --------------------------- */
+
+function WaterSection({ data, setData }) {
+  const toMlIfNeeded = (val) => (data.waterUnit === "L" ? Math.round(parseFloat(val || "0") * 1000) : parseInt(val || "0", 10));
+  const [goalInput, setGoalInput] = useState(
+    data.waterUnit === "L" ? String(data.waterGoal / 1000) : String(data.waterGoal)
+  );
+
+  const setUnit = (unit) => {
+    setData((d) => ({ ...d, waterUnit: unit }));
+    setGoalInput(unit === "L" ? String(data.waterGoal / 1000) : String(data.waterGoal));
+  };
+
+  const saveGoal = () => {
+    const ml = toMlIfNeeded(goalInput);
+    if (ml && ml > 0) setData((d) => ({ ...d, waterGoal: ml }));
+  };
+
+  return (
+    <div>
+      <SectionLabel>Unità di misura</SectionLabel>
+      <div className="dt-pill-row" style={{ marginBottom: 24 }}>
+        <Pill active={data.waterUnit === "ml"} color={WATER} onClick={() => setUnit("ml")}>Millilitri (ml)</Pill>
+        <Pill active={data.waterUnit === "L"} color={WATER} onClick={() => setUnit("L")}>Litri (L)</Pill>
+      </div>
+
+      <SectionLabel>Obiettivo giornaliero</SectionLabel>
+      <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            type="number" value={goalInput} onChange={(e) => setGoalInput(e.target.value)}
+            style={{ flex: 1, minWidth: 0, background: PAPER, border: `1px solid ${PAPER_LINE}`, color: INK, borderRadius: 10, padding: "10px 12px", fontSize: 15 }}
+          />
+          <span style={{ color: MUTED, fontSize: 13 }}>{data.waterUnit}</span>
+        </div>
+        <button onClick={saveGoal} className="dt-btn-primary">
+          <Check size={16} /> Salva obiettivo
+        </button>
+        <div style={{ color: MUTED, fontSize: 12 }}>Attuale: {formatWater(data.waterGoal)}</div>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------- Personalization Tab --------------------------- */
+
+function ProfileSection({ data, setData }) {
+  const [name, setName] = useState(data.profile.name || "");
+  const [birthYear, setBirthYear] = useState(data.profile.birthYear ? String(data.profile.birthYear) : "");
+  const [heightCm, setHeightCm] = useState(data.profile.heightCm ? String(data.profile.heightCm) : "");
+  const [weightKg, setWeightKg] = useState(data.profile.weightKg ? String(data.profile.weightKg) : "");
+  const [saved, setSaved] = useState(false);
+
+  const save = () => {
+    setData((d) => ({
+      ...d,
+      profile: {
+        name: name.trim(),
+        birthYear: birthYear ? parseInt(birthYear, 10) : null,
+        heightCm: heightCm ? parseInt(heightCm, 10) : null,
+        weightKg: weightKg ? parseInt(weightKg, 10) : null,
+      },
+    }));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1800);
+  };
+
+  return (
+    <div>
+      <SectionLabel>Profilo</SectionLabel>
+      <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="dt-field">
+          <label>Nome</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Il tuo nome" />
+        </div>
+        <div className="dt-field">
+          <label>Anno di nascita</label>
+          <input type="number" inputMode="numeric" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} placeholder="es. 1994" />
+        </div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <div className="dt-field">
+            <label>Altezza (cm)</label>
+            <input type="number" inputMode="numeric" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} placeholder="es. 175" />
+          </div>
+          <div className="dt-field">
+            <label>Peso (kg)</label>
+            <input type="number" inputMode="numeric" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="es. 70" />
+          </div>
+        </div>
+        <button onClick={save} className="dt-btn-primary">
+          <Check size={16} /> Salva profilo
+        </button>
+        {saved && <div style={{ color: MUTED, fontSize: 12, textAlign: "center" }}>Salvato.</div>}
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------- Onboarding --------------------------- */
+
+function ProgressDots({ step, total }) {
+  return (
+    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+      {Array.from({ length: total }, (_, i) => i + 1).map((i) => (
+        <span
+          key={i}
+          style={{
+            width: i === step ? 18 : 6, height: 6, borderRadius: 999,
+            background: i === step ? INK : PAPER_LINE, transition: "all .2s",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function Onboarding({ data, setData }) {
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [accepted, setAccepted] = useState(false);
+  const [error, setError] = useState("");
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [step]);
+
+  const goStep2 = () => {
+    if (!name.trim()) {
+      setError("Inserisci il tuo nome");
+      return;
+    }
+    if (!accepted) {
+      setError("Devi accettare l'informativa per continuare");
+      return;
+    }
+    setData((d) => ({
+      ...d,
+      profile: {
+        name: name.trim(),
+        birthYear: birthYear ? parseInt(birthYear, 10) : null,
+        heightCm: heightCm ? parseInt(heightCm, 10) : null,
+        weightKg: weightKg ? parseInt(weightKg, 10) : null,
+      },
+      policyAccepted: true,
+    }));
+    setStep(2);
+  };
+
+  const finish = () => setData((d) => ({ ...d, onboarded: true }));
+
+  return (
+    <div className="dt-app">
+      <style>{GLOBAL_CSS}</style>
+      <div className="dt-shell" style={{ padding: "40px 20px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+          <div style={{ width: 46 }} />
+          <ProgressDots step={step} total={3} />
+          {step > 1 ? (
+            <button
+              onClick={() => (step < 3 ? setStep(step + 1) : finish())}
+              className="dt-link-btn" style={{ color: MUTED, fontSize: 14 }}
+            >
+              Salta
+            </button>
+          ) : (
+            <div style={{ width: 46 }} />
+          )}
+        </div>
+        <div ref={scrollRef} style={{ flex: 1, overflowY: "auto" }}>
+          {step === 1 && (
+            <>
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <h1 className="dt-header-title" style={{ fontSize: 26 }}>Benvenuto</h1>
+                <p style={{ color: MUTED, fontSize: 13, marginTop: 8, lineHeight: 1.5 }}>
+                  Qualche informazione per iniziare — puoi modificarle in ogni momento da Personalizza.
+                </p>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div className="dt-field">
+                  <label>Nome</label>
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Il tuo nome" />
+                </div>
+                <div className="dt-field">
+                  <label>Anno di nascita (opzionale)</label>
+                  <input type="number" inputMode="numeric" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} placeholder="es. 1994" />
+                </div>
+                <div style={{ display: "flex", gap: 12 }}>
+                  <div className="dt-field">
+                    <label>Altezza cm (opz.)</label>
+                    <input type="number" inputMode="numeric" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} placeholder="175" />
+                  </div>
+                  <div className="dt-field">
+                    <label>Peso kg (opz.)</label>
+                    <input type="number" inputMode="numeric" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="70" />
+                  </div>
+                </div>
+
+                <div className="dt-card" style={{ marginTop: 6 }}>
+                  <div style={{ color: INK, fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Privacy e utilizzo dei dati</div>
+                  <div style={{ maxHeight: 160, overflowY: "auto", color: MUTED, fontSize: 12, lineHeight: 1.6, paddingRight: 4 }}>
+                    <p style={{ margin: "0 0 8px" }}>
+                      Day Tracker funziona interamente offline: non esiste nessun server, nessun account e nessuna connessione a internet richiesta per usare l'app.
+                    </p>
+                    <p style={{ margin: "0 0 8px" }}>
+                      <b style={{ color: INK }}>Cosa raccogliamo:</b> nome, anno di nascita, altezza e peso (solo se li inserisci — sono tutti opzionali tranne il nome), le attività e i task che registri, i dati sull'acqua bevuta e le sveglie che imposti.
+                    </p>
+                    <p style={{ margin: "0 0 8px" }}>
+                      <b style={{ color: INK }}>Dove vengono salvati:</b> esclusivamente sulla memoria del tuo telefono (storage locale dell'app). Nessun dato viene mai inviato, sincronizzato o condiviso con server esterni, sviluppatori o terze parti.
+                    </p>
+                    <p style={{ margin: "0 0 8px" }}>
+                      <b style={{ color: INK }}>Cookie e tracciamento:</b> nessuno. L'app non usa cookie, non contiene pubblicità e non effettua alcun tipo di analisi statistica o tracciamento del comportamento.
+                    </p>
+                    <p style={{ margin: "0 0 8px" }}>
+                      <b style={{ color: INK }}>Notifiche:</b> le sveglie che imposti restano sul dispositivo e richiedono il permesso di notifica del sistema operativo, che puoi revocare in qualsiasi momento dalle impostazioni del telefono.
+                    </p>
+                    <p style={{ margin: 0 }}>
+                      <b style={{ color: INK }}>Cancellazione:</b> puoi eliminare tutti i dati in ogni momento disinstallando l'app oppure da Impostazioni Android → App → Day Tracker → Cancella dati.
+                    </p>
+                  </div>
+                  <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginTop: 12, cursor: "pointer" }}>
+                    <input
+                      type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)}
+                      style={{ marginTop: 3, width: 16, height: 16, flexShrink: 0 }}
+                    />
+                    <span style={{ color: INK, fontSize: 13, lineHeight: 1.4 }}>Ho letto e accetto questa informativa</span>
+                  </label>
+                </div>
+
+                {error && <p className="dt-error">{error}</p>}
+              </div>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <div style={{ marginBottom: 20 }}>
+                <h1 className="dt-header-title" style={{ fontSize: 22 }}>Attività e task</h1>
+                <p style={{ color: MUTED, fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>
+                  Prepara le categorie e i task che userai ogni giorno — puoi sempre cambiarli dopo da Personalizza.
+                </p>
+              </div>
+              <ActivitiesSection data={data} setData={setData} />
+              <div style={{ marginTop: 8 }}>
+                <TasksManageSection data={data} setData={setData} />
+              </div>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <div style={{ marginBottom: 20 }}>
+                <h1 className="dt-header-title" style={{ fontSize: 22 }}>Acqua</h1>
+                <p style={{ color: MUTED, fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>
+                  Imposta unità di misura e obiettivo giornaliero — modificabile in ogni momento.
+                </p>
+              </div>
+              <WaterSection data={data} setData={setData} />
+            </>
+          )}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20 }}>
+          {step > 1 ? (
+            <button onClick={() => setStep(step - 1)} className="dt-btn-outline" style={{ width: "auto", padding: "12px 22px" }}>
+              Indietro
+            </button>
+          ) : <span />}
+          {step === 1 && (
+            <button onClick={goStep2} className="dt-btn-primary" style={{ width: "auto", padding: "12px 28px" }}>
+              Avanti
+            </button>
+          )}
+          {step === 2 && (
+            <button onClick={() => setStep(3)} className="dt-btn-primary" style={{ width: "auto", padding: "12px 28px" }}>
+              Avanti
+            </button>
+          )}
+          {step === 3 && (
+            <button onClick={finish} className="dt-btn-primary" style={{ width: "auto", padding: "12px 28px" }}>
+              Fine
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PersonalizationTab({ data, setData }) {
+  const [section, setSection] = useState("activities");
+  return (
+    <div>
+      <div className="dt-pill-row" style={{ marginBottom: 24 }}>
+        <Pill active={section === "profile"} color={INK} onClick={() => setSection("profile")}>Profilo</Pill>
+        <Pill active={section === "activities"} color={INK} onClick={() => setSection("activities")}>Attività</Pill>
+        <Pill active={section === "tasks"} color={INK} onClick={() => setSection("tasks")}>Task</Pill>
+        <Pill active={section === "water"} color={WATER} onClick={() => setSection("water")}>Acqua</Pill>
+        <Pill active={section === "reminders"} color={INK} onClick={() => setSection("reminders")}>Sveglie</Pill>
+      </div>
+      {section === "profile" && <ProfileSection data={data} setData={setData} />}
+      {section === "activities" && <ActivitiesSection data={data} setData={setData} />}
+      {section === "tasks" && <TasksManageSection data={data} setData={setData} />}
+      {section === "water" && <WaterSection data={data} setData={setData} />}
+      {section === "reminders" && <RemindersTab data={data} setData={setData} />}
+    </div>
+  );
+}
+
+/* --------------------------- History Tab --------------------------- */
+
+function CalendarGrid({ selected, onSelect, hasDataDates }) {
+  const [viewDate, setViewDate] = useState(new Date(selected + "T00:00:00"));
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startWeekday = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  const monthLabel = viewDate.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
+  const todayD = todayStr();
+
+  return (
+    <div className="dt-calendar">
+      <div className="dt-calendar-header">
+        <button onClick={() => setViewDate(new Date(year, month - 1, 1))}><ChevronLeft size={16} /></button>
+        <span>{monthLabel}</span>
+        <button onClick={() => setViewDate(new Date(year, month + 1, 1))}><ChevronRight size={16} /></button>
+      </div>
+      <div className="dt-calendar-weekdays">
+        {["L", "M", "M", "G", "V", "S", "D"].map((d, i) => <span key={i}>{d}</span>)}
+      </div>
+      <div className="dt-calendar-grid">
+        {cells.map((d, i) => {
+          if (!d) return <span key={i} />;
+          const ds = localDateStr(new Date(year, month, d));
+          const isFuture = ds > todayD;
+          return (
+            <button
+              key={i} disabled={isFuture} onClick={() => onSelect(ds)}
+              className={`dt-cal-day ${ds === selected ? "selected" : ""} ${hasDataDates.has(ds) ? "has-data" : ""}`}
+            >
+              {d}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 function HistoryTab({ data }) {
-  const [date, setDate] = useState(todayStr());
-  const entries = data.entries[date] || [];
-  const waterEntries = data.water[date] || [];
-  const waterMl = waterTotal(waterEntries);
+  const dates = useMemo(
+    () => Object.keys(data.entries).filter((d) => (data.entries[d] || []).length > 0).sort().reverse(),
+    [data.entries]
+  );
+  const hasDataDates = useMemo(() => {
+    const s = new Set();
+    Object.keys(data.entries).forEach((d) => { if ((data.entries[d] || []).length > 0) s.add(d); });
+    Object.keys(data.water).forEach((d) => { if ((data.water[d] || []).length > 0) s.add(d); });
+    Object.keys(data.taskCompletions).forEach((d) => { if ((data.taskCompletions[d] || []).length > 0) s.add(d); });
+    return s;
+  }, [data.entries, data.water, data.taskCompletions]);
 
-  const prevDate = () => { const d = new Date(date + "T00:00:00"); d.setDate(d.getDate() - 1); setDate(localDateStr(d)); };
-  const nextDate = () => { const d = new Date(date + "T00:00:00"); d.setDate(d.getDate() + 1); setDate(localDateStr(d)); };
-  const isToday = date === todayStr();
+  const [selected, setSelected] = useState(dates[0] || todayStr());
 
-  const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
-  const getFirstDay = (y, m) => new Date(y, m, 1).getDay();
+  useEffect(() => {
+    if (!selected && dates.length) setSelected(dates[0]);
+  }, [dates, selected]);
 
-  const [calDate, setCalDate] = useState(new Date(date + "T00:00:00"));
-  const calY = calDate.getFullYear(), calM = calDate.getMonth();
-  const prevMonth = () => setCalDate(new Date(calY, calM - 1, 1));
-  const nextMonth = () => setCalDate(new Date(calY, calM + 1, 1));
+  const entries = selected ? data.entries[selected] || [] : [];
+  const waterMl = selected ? waterTotal(data.water[selected]) : 0;
+  const completedTasks = selected ? data.taskCompletions[selected] || [] : [];
+  const hasAnyData = hasDataDates.size > 0;
 
-  const daysInMonth = getDaysInMonth(calY, calM);
-  let firstDay = getFirstDay(calY, calM) - 1;
-  if (firstDay < 0) firstDay = 6;
-  const days = [];
-  for (let i = 0; i < firstDay; i++) days.push(null);
-  for (let i = 1; i <= daysInMonth; i++) days.push(i);
-
-  const selectDay = (day) => {
-    if (!day) return;
-    setDate(localDateStr(new Date(calY, calM, day)));
-  };
-
-  const completedTasks = data.taskCompletions[date] || [];
+  if (!hasAnyData) {
+    return (
+      <div className="dt-empty">
+        <Calendar size={28} style={{ color: MUTED }} />
+        <p>Ancora nessuno storico. Le giornate tracciate compariranno qui.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
-      <div className="dt-calendar">
-        <div className="dt-calendar-header">
-          <button onClick={prevMonth}><ChevronLeft size={20} /></button>
-          <span>{calDate.toLocaleDateString("it-IT", { month: "long", year: "numeric" })}</span>
-          <button onClick={nextMonth}><ChevronRight size={20} /></button>
+      <CalendarGrid selected={selected} onSelect={setSelected} hasDataDates={hasDataDates} />
+
+      <div className="dt-history-date" style={{ marginBottom: 16 }}>{fmtDateLabel(selected)}</div>
+
+      <div className="dt-today-row">
+        <div className="dt-wheel-col">
+          <DayWheel entries={entries} />
         </div>
-        <div className="dt-calendar-weekdays"><span>Lu</span><span>Ma</span><span>Me</span><span>Gi</span><span>Ve</span><span>Sa</span><span>Do</span></div>
-        <div className="dt-calendar-grid">
-          {days.map((d, i) => {
-            if (!d) return <div key={i} />;
-            const cellDate = localDateStr(new Date(calY, calM, d));
-            const isSel = cellDate === date;
-            const hasData = !!data.entries[cellDate] || !!data.water[cellDate] || !!data.taskCompletions[cellDate];
-            const isFuture = cellDate > todayStr();
-            return (<button key={i} disabled={isFuture} onClick={() => selectDay(d)} className={`dt-cal-day ${isSel ? "selected" : ""} ${hasData ? "has-data" : ""}`}>{d}</button>);
-          })}
+        <div className="dt-water-col">
+          <WaterRing totalMl={waterMl} goalMl={data.waterGoal} />
+          <span className="dt-water-label">Acqua</span>
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "32px 0 24px 0" }}>
-        <button onClick={prevDate} className="dt-nav-btn"><ChevronLeft size={20} /></button>
-        <span className="dt-history-date">{fmtDateLabel(date)}</span>
-        <button onClick={nextDate} disabled={isToday} className="dt-nav-btn" style={{ opacity: isToday ? 0.3 : 1 }}><ChevronRight size={20} /></button>
-      </div>
-      {(entries.length === 0 && waterEntries.length === 0 && completedTasks.length === 0) ? (
-        <div className="dt-empty"><Calendar size={48} opacity={0.2} /><p>Nessun dato registrato</p></div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-          <div className="dt-today-row">
-            <div className="dt-wheel-col"><DayWheel entries={entries} /></div>
-            <div className="dt-side-col">
-              <div className="dt-water-col"><WaterRing totalMl={waterMl} goalMl={data.waterGoal} size={88} /><span className="dt-water-label">Acqua</span></div>
-            </div>
+      <Legend2 entries={entries} />
+
+      {data.tasks.length > 0 && (
+        <div style={{ marginTop: 32 }}>
+          <SectionLabel>Task</SectionLabel>
+          <div className="dt-card">
+            {data.tasks.map((t) => {
+              const done = completedTasks.includes(t.id);
+              return (
+                <div key={t.id} className="dt-cat-row">
+                  <span className="dt-cat-dot" style={{ background: t.color }} />
+                  <span className="dt-cat-label">{t.label}</span>
+                  {done ? <Check size={16} color={WATER} /> : <X size={16} color={MUTED} />}
+                </div>
+              );
+            })}
           </div>
-          <Legend2 entries={entries} />
-          {completedTasks.length > 0 && (
-            <div>
-              <SectionLabel>Task completati</SectionLabel>
-              <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {completedTasks.map((id) => {
-                  const t = data.tasks.find((x) => x.id === id);
-                  if (!t) return null;
-                  return (
-                    <div key={id} style={{ display: "flex", alignItems: "center", gap: 8, color: INK, fontSize: 14 }}>
-                      <Check size={16} color={t.color} /> {t.label}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          {entries.length > 0 && (
-            <div>
-              <SectionLabel>Timeline attività</SectionLabel>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {entries.map((e) => {
-                  const disp = resolveEntry(e);
-                  return (
-                    <div key={e.id} className="dt-entry-row">
-                      <span className="dt-entry-bar" style={{ background: disp.color }} />
-                      <div style={{ flex: 1, minWidth: 0 }}><div className="dt-entry-title">{disp.label}</div><div className="dt-entry-sub">{e.start} – {e.end} · {minsToHM(e.duration)}</div></div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
   );
 }
 
-function TrendsTab({ data }) {
-  const allDates = Object.keys(data.entries).sort();
-  const [chartType, setChartType] = useState("bar");
-  const [metric, setMetric] = useState("duration");
+/* --------------------------- Trends Tab --------------------------- */
 
-  const trendData = useMemo(() => {
-    if (allDates.length === 0) return [];
-    return allDates.map((d) => {
-      const g = groupEntries(data.entries[d]);
-      const obj = { date: fmtDateLabel(d).replace(/ /g, "\n") };
-      g.forEach((cat) => { obj[cat.name] = metric === "hours" ? Number((cat.value / 60).toFixed(1)) : cat.value; });
-      return obj;
-    });
-  }, [allDates, data.entries, metric]);
-
-  const activeNames = useMemo(() => {
-    const s = new Set();
-    allDates.forEach((d) => groupEntries(data.entries[d]).forEach((c) => s.add(c.name)));
-    return Array.from(s);
-  }, [allDates, data.entries]);
-
-  const catColor = (name) => {
-    const fromBase = BASE_CATEGORIES.find((c) => c.label === name);
-    if (fromBase) return fromBase.color;
-    const fromCust = data.customCategories.find((c) => c.label === name);
-    if (fromCust) return fromCust.color;
-    const ot = allDates.flatMap((d) => data.entries[d] || []).find((e) => !e.category && e.label === name);
-    if (ot) return ot.color;
-    return MUTED;
-  };
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{ background: PAPER, border: `1px solid ${PAPER_LINE}`, padding: 12, borderRadius: 12, fontSize: 13, color: INK }}>
-          <div style={{ fontWeight: 600, marginBottom: 8, color: MUTED }}>{label.replace(/\n/g, " ")}</div>
-          {payload.slice().sort((a, b) => b.value - a.value).map((p, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: p.color }} />
-              <span style={{ flex: 1 }}>{p.name}</span>
-              <span style={{ fontWeight: 500 }}>{metric === "hours" ? `${p.value}h` : minsToHM(p.value)}</span>
-            </div>
-          ))}
-        </div>
-      );
+function lastNWeeks(n) {
+  const weeks = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const end = new Date(now);
+    end.setDate(now.getDate() - i * 7);
+    const start = new Date(end);
+    start.setDate(end.getDate() - 6);
+    const dates = [];
+    for (let j = 0; j < 7; j++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + j);
+      dates.push(localDateStr(d));
     }
-    return null;
-  };
+    weeks.push({ key: i, label: `${start.getDate()}/${start.getMonth() + 1}`, dates });
+  }
+  return weeks;
+}
 
-  if (allDates.length === 0) return <div className="dt-empty"><TrendingUp size={48} opacity={0.2} /><p>Nessun dato per i trend</p></div>;
+function lastNMonths(n) {
+  const months = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const nextD = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+    const dates = [];
+    for (let day = 1; day <= nextD.getDate(); day++) {
+      dates.push(localDateStr(new Date(d.getFullYear(), d.getMonth(), day)));
+    }
+    months.push({ key: i, label: d.toLocaleDateString("it-IT", { month: "short" }), dates });
+  }
+  return months;
+}
+
+function aggregateByPeriod(entriesByDate, dateList) {
+  const seriesMap = {};
+  const rows = dateList.map((period) => {
+    const row = { name: period.label };
+    period.dates.forEach((d) => {
+      (entriesByDate[d] || []).forEach((e) => {
+        const key = e.category || "onetime";
+        const disp = key === "onetime" ? { label: "Una tantum", color: MUTED } : resolveEntry(e);
+        if (!seriesMap[key]) seriesMap[key] = { id: key, label: disp.label, color: disp.color };
+        row[key] = (row[key] || 0) + e.duration / 60;
+      });
+    });
+    return row;
+  });
+  return { rows, series: Object.values(seriesMap) };
+}
+
+function TrendsTab({ data }) {
+  const [range, setRange] = useState("week");
+  const [catFilter, setCatFilter] = useState(null);
+  const activeCats = useMemo(() => getActiveCategories(data), [data.hiddenBase, data.customCategories]);
+
+  const periods = range === "week" ? lastNWeeks(8) : lastNMonths(6);
+  const { rows: chartData, series } = useMemo(() => aggregateByPeriod(data.entries, periods), [data.entries, range]);
+  const visibleSeries = catFilter ? series.filter((s) => s.id === catFilter) : series;
+
+  const dailyTrend = useMemo(() => {
+    if (!catFilter) return [];
+    const days = [];
+    const now = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const ds = localDateStr(d);
+      const mins = (data.entries[ds] || []).filter((e) => (e.category || "onetime") === catFilter).reduce((s, e) => s + e.duration, 0);
+      days.push({ name: `${d.getDate()}/${d.getMonth() + 1}`, minuti: mins });
+    }
+    return days;
+  }, [data.entries, catFilter]);
+
+  const filterCat = series.find((s) => s.id === catFilter);
+
+  const waterDaily = useMemo(() => {
+    const days = [];
+    const now = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const ds = localDateStr(d);
+      days.push({ name: `${d.getDate()}/${d.getMonth() + 1}`, ml: waterTotal(data.water[ds]) });
+    }
+    return days;
+  }, [data.water]);
+
+  const waterAggregate = useMemo(
+    () => periods.map((p) => ({
+      name: p.label,
+      ml: Math.round(p.dates.reduce((s, d) => s + waterTotal(data.water[d]), 0) / p.dates.length),
+    })),
+    [data.water, range]
+  );
 
   return (
     <div>
+      <SectionLabel>Filtra per attività</SectionLabel>
       <div className="dt-pill-row" style={{ marginBottom: 24 }}>
-        <Pill active={chartType === "bar"} color={INK} onClick={() => setChartType("bar")}>A Barre</Pill>
-        <Pill active={chartType === "line"} color={INK} onClick={() => setChartType("line")}>A Linee</Pill>
-        <Pill active={metric === "duration"} color={INK} onClick={() => setMetric("duration")}>Minuti</Pill>
-        <Pill active={metric === "hours"} color={INK} onClick={() => setMetric("hours")}>Ore</Pill>
+        <Pill active={!catFilter} color={INK} onClick={() => setCatFilter(null)}>Tutte</Pill>
+        {activeCats.map((c) => (
+          <Pill key={c.id} active={catFilter === c.id} color={c.color} onClick={() => setCatFilter(catFilter === c.id ? null : c.id)}>
+            <c.Icon size={13} /> {c.label}
+          </Pill>
+        ))}
       </div>
-      <div style={{ width: "100%", height: 400 }}>
-        <ResponsiveContainer>
-          {chartType === "bar" ? (
-            <BarChart data={trendData} margin={{ top: 10, right: 0, left: -20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={PAPER_LINE} vertical={false} />
-              <XAxis dataKey="date" stroke={MUTED} fontSize={10} tickLine={false} axisLine={false} tickMargin={12} />
-              <YAxis stroke={MUTED} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => (metric === "hours" ? `${v}h` : v)} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: PAPER_RAISED }} />
-              {metric === "hours" && <ReferenceLine y={24} stroke={PAPER_LINE} strokeDasharray="3 3" />}
-              {activeNames.map((name) => (<Bar key={name} dataKey={name} stackId="a" fill={catColor(name)} radius={[4, 4, 0, 0]} />))}
-            </BarChart>
-          ) : (
-            <LineChart data={trendData} margin={{ top: 10, right: 0, left: -20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={PAPER_LINE} vertical={false} />
-              <XAxis dataKey="date" stroke={MUTED} fontSize={10} tickLine={false} axisLine={false} tickMargin={12} />
-              <YAxis stroke={MUTED} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => (metric === "hours" ? `${v}h` : v)} />
-              <Tooltip content={<CustomTooltip />} />
-              {activeNames.map((name) => (<Line key={name} type="monotone" dataKey={name} stroke={catColor(name)} strokeWidth={3} dot={{ r: 4, fill: PAPER, strokeWidth: 2 }} activeDot={{ r: 6 }} />))}
+
+      {catFilter && filterCat && (
+        <div style={{ marginBottom: 32 }}>
+          <SectionLabel>Andamento ultimi 30 giorni — {filterCat.label}</SectionLabel>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={dailyTrend}>
+              <CartesianGrid stroke={PAPER_LINE} vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 9, fill: MUTED }} interval={4} axisLine={{ stroke: PAPER_LINE }} tickLine={false} />
+              <YAxis tick={{ fontSize: 9, fill: MUTED }} axisLine={false} tickLine={false} width={30} />
+              <Tooltip
+                contentStyle={{ background: PAPER_RAISED, border: `1px solid ${PAPER_LINE}`, borderRadius: 10, color: INK }}
+                formatter={(v) => [minsToHM(v), "durata"]}
+              />
+              <Line type="monotone" dataKey="minuti" stroke={filterCat.color} strokeWidth={2} dot={false} />
             </LineChart>
-          )}
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <SectionLabel>Aggregato {range === "week" ? "settimanale" : "mensile"}</SectionLabel>
+      </div>
+      <div className="dt-pill-row" style={{ marginBottom: 12 }}>
+        <Pill active={range === "week"} color={INK} onClick={() => setRange("week")}>Settimane</Pill>
+        <Pill active={range === "month"} color={INK} onClick={() => setRange("month")}>Mesi</Pill>
+      </div>
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart data={chartData}>
+          <CartesianGrid stroke={PAPER_LINE} vertical={false} />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: MUTED }} axisLine={{ stroke: PAPER_LINE }} tickLine={false} />
+          <YAxis tick={{ fontSize: 10, fill: MUTED }} axisLine={false} tickLine={false} width={28} unit="h" />
+          <Tooltip
+            contentStyle={{ background: PAPER_RAISED, border: `1px solid ${PAPER_LINE}`, borderRadius: 10, color: INK }}
+            formatter={(v, n) => [`${v.toFixed(1)}h`, series.find((s) => s.id === n)?.label || n]}
+          />
+          {visibleSeries.map((s) => (
+            <Bar key={s.id} dataKey={s.id} stackId="a" fill={s.color} radius={visibleSeries.length === 1 ? [4, 4, 0, 0] : 0} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+
+      <div style={{ marginTop: 32 }}>
+        <SectionLabel>Acqua — ultimi 30 giorni</SectionLabel>
+        <ResponsiveContainer width="100%" height={160}>
+          <LineChart data={waterDaily}>
+            <CartesianGrid stroke={PAPER_LINE} vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 9, fill: MUTED }} interval={4} axisLine={{ stroke: PAPER_LINE }} tickLine={false} />
+            <YAxis tick={{ fontSize: 9, fill: MUTED }} axisLine={false} tickLine={false} width={30} />
+            <Tooltip
+              contentStyle={{ background: PAPER_RAISED, border: `1px solid ${PAPER_LINE}`, borderRadius: 10, color: INK }}
+              formatter={(v) => [formatWater(v), "acqua"]}
+            />
+            <ReferenceLine y={data.waterGoal} stroke={MUTED} strokeDasharray="4 4" />
+            <Line type="monotone" dataKey="ml" stroke={WATER} strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <SectionLabel>Media acqua {range === "week" ? "settimanale" : "mensile"} (al giorno)</SectionLabel>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={waterAggregate}>
+            <CartesianGrid stroke={PAPER_LINE} vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: MUTED }} axisLine={{ stroke: PAPER_LINE }} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: MUTED }} axisLine={false} tickLine={false} width={30} />
+            <Tooltip
+              contentStyle={{ background: PAPER_RAISED, border: `1px solid ${PAPER_LINE}`, borderRadius: 10, color: INK }}
+              formatter={(v) => [formatWater(v), "media/giorno"]}
+            />
+            <ReferenceLine y={data.waterGoal} stroke={MUTED} strokeDasharray="4 4" />
+            <Bar dataKey="ml" fill={WATER} radius={[4, 4, 0, 0]} />
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </div>
   );
 }
 
-function CustomCatsSection({ data, setData }) {
-  const [showModal, setShowModal] = useState(false);
+/* --------------------------- Reminders Tab --------------------------- */
+
+const isNative = Capacitor.isNativePlatform();
+const reminderNumId = (id) => {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h % 2147483647;
+};
+
+function RemindersTab({ data, setData }) {
+  const [time, setTime] = useState("09:00");
   const [label, setLabel] = useState("");
-  const [color, setColor] = useState(PURE_RED);
-
-  const activeIds = new Set([
-    ...BASE_CATEGORIES.filter((c) => c.id !== "altro" && !data.hiddenBase.includes(c.id)).map((c) => c.id),
-    ...data.customCategories.map((c) => c.id),
-  ]);
-  const activeList = getActiveCategories(data);
-
-  const toggleBase = (id) => {
-    setData((d) => {
-      const hidden = d.hiddenBase.includes(id) ? d.hiddenBase.filter((x) => x !== id) : [...d.hiddenBase, id];
-      let order = d.categoryOrder;
-      if (!d.hiddenBase.includes(id)) { order = order.filter((x) => x !== id); }
-      else if (!order.includes(id)) { order = [...order, id]; }
-      return { ...d, hiddenBase: hidden, categoryOrder: order };
-    });
-  };
-
-  const removeCustom = (id) => {
-    setData((d) => ({ ...d, customCategories: d.customCategories.filter((c) => c.id !== id), categoryOrder: d.categoryOrder.filter((x) => x !== id) }));
-  };
-
-  const addCustom = () => {
-    if (!label.trim()) return;
-    const newId = crypto.randomUUID();
-    const cat = { id: newId, label: label.trim(), color };
-    setData((d) => ({ ...d, customCategories: [...d.customCategories, cat], categoryOrder: [...d.categoryOrder, newId] }));
-    setLabel("");
-    setColor(PURE_RED);
-    setShowModal(false);
-  };
-
-  const move = (id, dir) => { setData((d) => ({ ...d, categoryOrder: moveInOrder(d.categoryOrder, activeIds, id, dir) })); };
-
-  return (
-    <div>
-      <SectionLabel>Ordine e Visibilità Attività</SectionLabel>
-      <div className="dt-card" style={{ marginBottom: 16 }}>
-        {activeList.map((c, i) => (
-          <div key={c.id} className="dt-order-row">
-            <div className="dt-order-arrows">
-              <button onClick={() => move(c.id, -1)} disabled={i === 0}><ArrowUp size={13} /></button>
-              <button onClick={() => move(c.id, 1)} disabled={i === activeList.length - 1}><ArrowDown size={13} /></button>
-            </div>
-            <span className="dt-cat-dot" style={{ background: c.color }} />
-            <span className="dt-cat-label">{c.label}</span>
-            {c.custom ? (<button onClick={() => removeCustom(c.id)} className="dt-icon-btn"><Trash2 size={16} /></button>) : (<button onClick={() => toggleBase(c.id)} className="dt-icon-btn" style={{ color: INK }}><Eye size={16} /></button>)}
-          </div>
-        ))}
-      </div>
-      <SectionLabel>Categorie Base Nascoste</SectionLabel>
-      {data.hiddenBase.length === 0 ? (<div style={{ color: MUTED, fontSize: 13, marginBottom: 16 }}>Nessuna</div>) : (
-        <div className="dt-card" style={{ marginBottom: 16 }}>
-          {BASE_CATEGORIES.filter((c) => c.id !== "altro" && data.hiddenBase.includes(c.id)).map((c) => (
-            <div key={c.id} className="dt-cat-row">
-              <span className="dt-cat-dot" style={{ background: c.color, opacity: 0.3 }} />
-              <span className="dt-cat-label hidden-cat">{c.label}</span>
-              <button onClick={() => toggleBase(c.id)} className="dt-icon-btn"><EyeOff size={16} /></button>
-            </div>
-          ))}
-        </div>
-      )}
-      <button onClick={() => setShowModal(true)} className="dt-btn-outline"><Plus size={16} /> Nuova Categoria Custom</button>
-      {showModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(21, 22, 27, 0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
-          <div className="dt-card" style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 16 }}>
-            <h3 style={{ margin: 0, color: INK, fontSize: 18, fontFamily: "'Fraunces', serif" }}>Nuova Categoria</h3>
-            <div className="dt-field"><label>Nome categoria</label><input type="text" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="es. Studio, Lavoro..." /></div>
-            <SwatchPicker value={color} onChange={setColor} />
-            <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-              <button onClick={() => setShowModal(false)} className="dt-btn-outline">Annulla</button>
-              <button onClick={addCustom} className="dt-btn-primary">Salva</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+  const [permission, setPermission] = useState(
+    isNative ? "unknown" : (typeof Notification !== "undefined" ? Notification.permission : "unsupported")
   );
-}
-
-function RemindersSection({ data, setData }) {
-  const [time, setTime] = useState("");
-  const [label, setLabel] = useState("");
-  const [error, setError] = useState("");
-  const isWeb = Capacitor.getPlatform() === "web";
 
   useEffect(() => {
-    if (!isWeb) {
-      LocalNotifications.requestPermissions().then((res) => { if (res.display !== "granted") setError("Permessi notifiche negati"); });
+    if (isNative) {
+      LocalNotifications.checkPermissions().then((p) => setPermission(p.display));
     }
-  }, [isWeb]);
+  }, []);
 
-  const addReminder = async () => {
-    setError("");
-    if (!time || !label.trim()) { setError("Inserisci orario e testo"); return; }
-    const id = Math.floor(Math.random() * 1000000);
-    const rem = { id, time, label: label.trim() };
-    const [h, m] = time.split(":").map(Number);
-    if (!isWeb) {
-      try {
-        await LocalNotifications.schedule({ notifications: [{ id, title: "Promemoria DayTracker", body: rem.label, schedule: { on: { hour: h, minute: m }, allowWhileIdle: true } }] });
-      } catch { setError("Errore di scheduling (dispositivo non supportato?)"); return; }
+  useEffect(() => {
+    if (isNative) {
+      (async () => {
+        try {
+          const pending = await LocalNotifications.getPending();
+          if (pending.notifications.length) {
+            await LocalNotifications.cancel({ notifications: pending.notifications.map((n) => ({ id: n.id })) });
+          }
+          if (data.reminders.length === 0) return;
+          await LocalNotifications.schedule({
+            notifications: data.reminders.map((r) => {
+              const [h, m] = r.time.split(":").map(Number);
+              return {
+                id: reminderNumId(r.id),
+                title: "Promemoria attività",
+                body: r.label || "Cosa hai fatto? Registra il tempo.",
+                schedule: { on: { hour: h, minute: m }, allowWhileIdle: true },
+              };
+            }),
+          });
+        } catch {
+          // permessi non concessi
+        }
+      })();
+      return;
     }
-    setData((d) => ({ ...d, reminders: [...d.reminders, rem].sort((a, b) => a.time.localeCompare(b.time)) }));
-    setTime("");
-    setLabel("");
+    if (typeof Notification === "undefined") return;
+    const timers = [];
+    data.reminders.forEach((r) => {
+      const [h, m] = r.time.split(":").map(Number);
+      const now = new Date();
+      const target = new Date();
+      target.setHours(h, m, 0, 0);
+      if (target < now) target.setDate(target.getDate() + 1);
+      const ms = target - now;
+      const id = setTimeout(() => {
+        if (Notification.permission === "granted") {
+          new Notification("Promemoria attività", { body: r.label || "Cosa hai fatto? Registra il tempo." });
+        }
+      }, ms);
+      timers.push(id);
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [data.reminders]);
+
+  const requestPerm = async () => {
+    if (isNative) {
+      const p = await LocalNotifications.requestPermissions();
+      setPermission(p.display);
+      return;
+    }
+    if (typeof Notification === "undefined") return;
+    const p = await Notification.requestPermission();
+    setPermission(p);
   };
 
-  const removeReminder = async (id) => {
-    if (!isWeb) { try { await LocalNotifications.cancel({ notifications: [{ id }] }); } catch (e) {} }
+  const addReminder = () => {
+    const r = { id: crypto.randomUUID(), time, label };
+    setData((d) => ({ ...d, reminders: [...d.reminders, r].sort((a, b) => a.time.localeCompare(b.time)) }));
+    setLabel("");
+  };
+  const removeReminder = (id) => {
     setData((d) => ({ ...d, reminders: d.reminders.filter((r) => r.id !== id) }));
   };
 
   return (
     <div>
       <SectionLabel>Promemoria</SectionLabel>
-      {isWeb && <p className="dt-reminder-note">Sul web i promemoria sono solo visivi (non riceverai notifiche push). Usa l'app nativa per le notifiche.</p>}
-      <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
-        <div style={{ display: "flex", gap: 12 }}>
-          <div className="dt-field" style={{ flex: "0 0 100px" }}><label>Orario</label><input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></div>
-          <div className="dt-field"><label>Messaggio</label><input type="text" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="es. Bevi acqua!" /></div>
-        </div>
-        {error && <p className="dt-error">{error}</p>}
-        <button onClick={addReminder} className="dt-btn-primary"><Bell size={16} /> Aggiungi promemoria</button>
-      </div>
-      {data.reminders.length > 0 && (
-        <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {data.reminders.map((r) => (
-            <div key={r.id} className="dt-entry-row">
-              <Bell size={16} color={MUTED} />
-              <div style={{ flex: 1, color: INK, fontSize: 14 }}>{r.time} <span style={{ color: MUTED, fontSize: 13, marginLeft: 8 }}>{r.label}</span></div>
-              <button onClick={() => removeReminder(r.id)} className="dt-entry-delete"><Trash2 size={15} /></button>
-            </div>
-          ))}
-        </div>
+      <p className="dt-reminder-note">
+        {isNative
+          ? "Le sveglie funzionano anche a telefono bloccato o con l'app chiusa, grazie alle notifiche di sistema."
+          : "I promemoria funzionano solo mentre questa pagina resta aperta nel browser: per sveglie reali che arrivano anche a telefono bloccato serve l'app installata come APK nativo."}
+      </p>
+
+      {permission !== "granted" && permission !== "unsupported" && (
+        <button onClick={requestPerm} className="dt-btn-outline" style={{ marginBottom: 16 }}>
+          <Bell size={15} /> Attiva le notifiche
+        </button>
       )}
-    </div>
-  );
-}
 
-function SettingsTab({ data, setData, exportData, importData }) {
-  const fileInputRef = useRef(null);
-
-  const updateProfile = (k, v) => setData((d) => ({ ...d, profile: { ...d.profile, [k]: v } }));
-  const handleImport = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => { if (importData(evt.target.result)) alert("Dati importati con successo!"); else alert("Errore file non valido"); };
-    reader.readAsText(file);
-    e.target.value = "";
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-      <div>
-        <SectionLabel>Profilo Fisiologico</SectionLabel>
-        <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div className="dt-field"><label>Nome o Nickname</label><input type="text" value={data.profile.name || ""} onChange={(e) => updateProfile("name", e.target.value)} placeholder="es. Mario" /></div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <div className="dt-field"><label>Anno di nascita</label><input type="number" value={data.profile.birthYear || ""} onChange={(e) => updateProfile("birthYear", e.target.value)} placeholder="es. 1990" /></div>
-            <div className="dt-field"><label>Altezza (cm)</label><input type="number" value={data.profile.heightCm || ""} onChange={(e) => updateProfile("heightCm", e.target.value)} placeholder="es. 175" /></div>
-            <div className="dt-field"><label>Peso (kg)</label><input type="number" value={data.profile.weightKg || ""} onChange={(e) => updateProfile("weightKg", e.target.value)} placeholder="es. 70" /></div>
+      <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 12 }}>
+          <div className="dt-field">
+            <label>Orario</label>
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          </div>
+          <div className="dt-field" style={{ flex: 2 }}>
+            <label>Nota (opzionale)</label>
+            <input type="text" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="es. Registra la palestra" />
           </div>
         </div>
+        <button onClick={addReminder} className="dt-btn-primary">
+          <Plus size={16} /> Aggiungi promemoria
+        </button>
       </div>
-      <div>
-        <SectionLabel>Impostazioni Tracciamento</SectionLabel>
-        <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div className="dt-toggle-row"><div><div style={{ color: INK, fontSize: 15, fontWeight: 500 }}>Attività Una Tantum</div><div className="desc">Permetti inserimento rapido senza categoria</div></div><Switch on={data.allowOnetime} onClick={() => setData((d) => ({ ...d, allowOnetime: !d.allowOnetime }))} /></div>
-          <div style={{ height: 1, background: PAPER_LINE }} />
-          <div style={{ display: "flex", gap: 12 }}>
-            <div className="dt-field"><label>Obiettivo Acqua Giornaliero</label><input type="number" value={data.waterGoal} onChange={(e) => setData((d) => ({ ...d, waterGoal: Number(e.target.value) }))} /></div>
-            <div className="dt-field" style={{ flex: "0 0 100px" }}><label>Unità</label>
-              <select value={data.waterUnit} onChange={(e) => setData((d) => ({ ...d, waterUnit: e.target.value }))} style={{ background: PAPER, border: `1px solid ${PAPER_LINE}`, color: INK, borderRadius: 10, padding: "10px 12px", fontSize: 15, width: "100%", height: 42 }}>
-                <option value="ml">ml</option>
-                <option value="L">L</option>
-              </select>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {data.reminders.map((r) => (
+          <div key={r.id} className="dt-entry-row">
+            <Clock size={15} style={{ color: MUTED }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="dt-entry-title">{r.time}</div>
+              {r.label && <div className="dt-entry-sub">{r.label}</div>}
             </div>
+            <button onClick={() => removeReminder(r.id)} className="dt-entry-delete">
+              <Trash2 size={15} />
+            </button>
           </div>
-        </div>
+        ))}
       </div>
-      <TasksManageSection data={data} setData={setData} />
-      <CustomCatsSection data={data} setData={setData} />
-      <RemindersSection data={data} setData={setData} />
-      <div>
-        <SectionLabel>Dati e Privacy</SectionLabel>
-        <div className="dt-card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <button onClick={exportData} className="dt-btn-outline">Esporta Backup (JSON)</button>
-          <button onClick={() => fileInputRef.current?.click()} className="dt-btn-outline">Importa Backup</button>
-          <input type="file" accept=".json" ref={fileInputRef} onChange={handleImport} style={{ display: "none" }} />
-          <button onClick={() => { if (confirm("Sei sicuro? Tutti i dati verranno eliminati.")) setData({ ...data, entries: {}, reminders: [], taskCompletions: {}, water: {} }); }} className="dt-btn-outline" style={{ color: "#D46A5C", borderColor: "#D46A5C26" }}><RotateCcw size={16} /> Resetta Dati</button>
-        </div>
-      </div>
-      <div style={{ textAlign: "center", color: MUTED, fontSize: 11, letterSpacing: 0.5 }}>DAYTRACKER V1.0 · TUTTI I DATI RESTANO SUL DISPOSITIVO</div>
     </div>
   );
 }
 
-function Onboarding({ onComplete }) {
-  const [step, setStep] = useState(1);
-  const [agreed, setAgreed] = useState(false);
-  const finish = () => {
-    if (!agreed) return;
-    onComplete();
+/* --------------------------- App shell --------------------------- */
+
+const TABS = [
+  { id: "today", label: "Oggi", Icon: Clock },
+  { id: "history", label: "Storico", Icon: Calendar },
+  { id: "trends", label: "Trend", Icon: TrendingUp },
+  { id: "settings", label: "Personalizza", Icon: SlidersHorizontal },
+];
+
+export default function App() {
+  const [data, setDataRaw] = useState(loadData);
+  const [tab, setTab] = useState("today");
+  const [now, setNow] = useState(new Date());
+
+  // Stati degli accordion sollevati a livello superiore per non azzerarsi cambiando tab
+  const [tasksOpen, setTasksOpen] = useState(true);
+  const [activitiesOpen, setActivitiesOpen] = useState(true);
+  const [waterOpen, setWaterOpen] = useState(true);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const setData = useCallback((updater) => {
+    setDataRaw((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      saveData(next);
+      return next;
+    });
+  }, []);
+
+  const titles = {
+    today: data.profile.name ? `Ciao ${data.profile.name}, ecco la tua giornata` : "Il tuo giorno",
+    history: "Storico",
+    trends: "Grafici e trend",
+    settings: "Personalizza",
   };
 
-  if (step === 1) {
-    return (
-      <div className="dt-shell" style={{ padding: 24, justifyContent: "center", alignItems: "center", textAlign: "center" }}>
-        <Clock size={64} color={INK} style={{ marginBottom: 24 }} />
-        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 32, margin: "0 0 16px 0" }}>Benvenuto in DayTracker</h1>
-        <p style={{ color: MUTED, fontSize: 16, lineHeight: 1.5, marginBottom: 32 }}>Prendi il controllo del tuo tempo. Monitora le tue attività, tieni traccia dei tuoi obiettivi quotidiani (task, acqua) e scopri come investi la tua giornata.</p>
-        <button onClick={() => setStep(2)} className="dt-btn-primary">Inizia</button>
-      </div>
-    );
+  if (!data.onboarded) {
+    return <Onboarding data={data} setData={setData} />;
   }
 
   return (
-    <div className="dt-shell" style={{ padding: 24, justifyContent: "center" }}>
-      <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 24, margin: "0 0 16px 0" }}>Privacy & Dati</h2>
-      <p style={{ color: MUTED, fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>DayTracker è progettato per la tua privacy totale. <strong>Tutti i tuoi dati rimangono esclusivamente sul tuo dispositivo.</strong> Non ci sono server esterni, nessun account richiesto e nessun dato viene inviato a terzi. Puoi esportare o eliminare i tuoi dati in qualsiasi momento dalle impostazioni.</p>
-      <label style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 32, cursor: "pointer" }}>
-        <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ width: 20, height: 20, marginTop: 2, accentColor: INK }} />
-        <span style={{ fontSize: 14, color: INK, lineHeight: 1.5 }}>Ho letto e accetto l'Informativa sulla Privacy. Comprendo che i dati sono salvati localmente.</span>
-      </label>
-      <button onClick={finish} disabled={!agreed} className="dt-btn-primary" style={{ opacity: agreed ? 1 : 0.5 }}>{agreed ? "Inizia a tracciare" : "Accetta per continuare"}</button>
-    </div>
-  );
-}
-
-export default function App() {
-  const [data, setData] = useState(null);
-  const [tab, setTab] = useState("today");
-  const [uiState, setUiState] = useState({ tasksOpen: true, activitiesOpen: true, waterOpen: true });
-
-  useEffect(() => {
-    if (!document.getElementById("dt-styles")) {
-      const style = document.createElement("style");
-      style.id = "dt-styles";
-      style.innerHTML = GLOBAL_CSS;
-      document.head.appendChild(style);
-    }
-    const loaded = loadData();
-    if (!loaded.taskCompletions) loaded.taskCompletions = {};
-    setData(loaded);
-  }, []);
-
-  useEffect(() => { if (data) saveData(data); }, [data]);
-
-  const exportData = () => {
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `daytracker-backup-${todayStr()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const importData = (jsonStr) => {
-    try {
-      const parsed = JSON.parse(jsonStr);
-      if (parsed && typeof parsed === "object" && parsed.entries) {
-        if (!parsed.taskCompletions) parsed.taskCompletions = {};
-        setData((d) => ({ ...d, ...parsed }));
-        return true;
-      }
-      return false;
-    } catch { return false; }
-  };
-
-  if (!data) return null;
-  if (!data.onboarded) return <div className="dt-app"><Onboarding onComplete={() => setData((d) => ({ ...d, onboarded: true, policyAccepted: true }))} /></div>;
-
-  return (
     <div className="dt-app">
+      <style>{GLOBAL_CSS}</style>
       <div className="dt-shell">
-        <div className="dt-header">
-          <div className="dt-header-date">{fmtDateLabel(todayStr())}</div>
-          <h1 className="dt-header-title">{tab === "today" ? "Oggi" : tab === "history" ? "Storico" : tab === "trends" ? "Trend" : "Personalizza"}</h1>
-        </div>
-        <div className="dt-main">
-          {tab === "today" && <TodayTab data={data} setData={setData} uiState={uiState} setUiState={setUiState} />}
+        <header className="dt-header">
+          <div className="dt-header-date">
+            {now.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
+          </div>
+          <h1 className="dt-header-title">{titles[tab]}</h1>
+        </header>
+
+        <main className="dt-main">
+          {tab === "today" && (
+            <TodayTab
+              data={data}
+              setData={setData}
+              tasksOpen={tasksOpen}
+              setTasksOpen={setTasksOpen}
+              activitiesOpen={activitiesOpen}
+              setActivitiesOpen={setActivitiesOpen}
+              waterOpen={waterOpen}
+              setWaterOpen={setWaterOpen}
+            />
+          )}
           {tab === "history" && <HistoryTab data={data} />}
           {tab === "trends" && <TrendsTab data={data} />}
-          {tab === "settings" && <SettingsTab data={data} setData={setData} exportData={exportData} importData={importData} />}
-        </div>
-        <div className="dt-nav">
-          <button onClick={() => setTab("today")} className={`dt-nav-btn ${tab === "today" ? "active" : ""}`}><Clock size={22} /><span>Oggi</span></button>
-          <button onClick={() => setTab("history")} className={`dt-nav-btn ${tab === "history" ? "active" : ""}`}><Calendar size={22} /><span>Storico</span></button>
-          <button onClick={() => setTab("trends")} className={`dt-nav-btn ${tab === "trends" ? "active" : ""}`}><TrendingUp size={22} /><span>Trend</span></button>
-          <button onClick={() => setTab("settings")} className={`dt-nav-btn ${tab === "settings" ? "active" : ""}`}><SlidersHorizontal size={22} /><span>App</span></button>
-        </div>
+          {tab === "settings" && <PersonalizationTab data={data} setData={setData} />}
+        </main>
+
+        <nav className="dt-nav">
+          {TABS.map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)} className={`dt-nav-btn ${tab === t.id ? "active" : ""}`}>
+              <t.Icon size={18} strokeWidth={tab === t.id ? 2.4 : 1.8} />
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
     </div>
   );
