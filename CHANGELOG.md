@@ -1,5 +1,13 @@
 # Changelog — Day Tracker
 
+## v5.1 — 2026-10-12
+**Tipo:** Minor (correzioni ai casi limite)
+
+- **Attività che finisce a mezzanotte (es. 22:00 → 00:00):** registra correttamente le ore di ieri e non crea più una voce vuota da 0 minuti nella giornata di oggi.
+- **Orario di inizio e fine uguali:** ora compare un messaggio di errore, invece di creare in silenzio un'attività di 24 ore.
+- **Ruota e legenda con attività sovrapposte:** se due attività si sovrappongono e superano le 24 ore, le fette restano proporzionali (la ruota non va oltre il cerchio e la legenda non supera il 100%).
+- **Pulizia:** rimossi import e una costante non più utilizzati.
+
 ## v5.0 — 2026-10-10
 **Tipo:** Major (fix visualizzazione e ordinamento task)
 
