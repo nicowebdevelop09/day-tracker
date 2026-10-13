@@ -9,8 +9,8 @@ import {
 import {
   Moon, Wallet, Sparkles, Brain, Repeat, Dumbbell, Trophy,
   Users, CircleEllipsis, Plus, Trash2, Calendar, TrendingUp,
-  Clock, ChevronLeft, ChevronRight, Bell, Tag, EyeOff, Eye, Check,
-  Droplet, Pencil, X, SlidersHorizontal, Palette, ListChecks, RotateCcw, ChevronDown, ArrowUp, ArrowDown,
+  Clock, ChevronLeft, ChevronRight, Bell, Tag, Check,
+  Droplet, X, SlidersHorizontal, ListChecks, RotateCcw, ChevronDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 
 /* ---------------------------------------------------------
@@ -37,11 +37,6 @@ const BASE_CATEGORIES = [
   { id: "altro", label: "Altro", color: "#6B6E78", Icon: CircleEllipsis },
 ];
 const BASE_MAP = Object.fromEntries(BASE_CATEGORIES.map((c) => [c.id, c]));
-
-const PALETTE = [
-  "#7C8BD9", "#4FA37B", "#D4AF37", "#9B84E0", "#4CB0A6", "#D46A5C",
-  "#E0954E", "#D67AA8", "#6FA8DC", "#B5C34C", "#C97064", "#5FA8A0",
-];
 
 const STORAGE_KEY = "day-tracker-v1";
 const localDateStr = (d) => {
@@ -705,9 +700,12 @@ function DayWheel({ entries }) {
   const outerRadius = 110;
   const innerRadius = 70;
 
+  // Di norma il totale è 24h; se due attività si sovrappongono e superano le 24h si
+  // normalizza sul totale, così le fette non vanno oltre il cerchio e non si coprono.
+  const wheelTotal = Math.max(totals.reduce((s, t) => s + t.value, 0), MINUTES_PER_DAY);
   let cumulativeAngle = 0;
   const svgSlices = totals.map((slice) => {
-    const angle = (slice.value / MINUTES_PER_DAY) * 360;
+    const angle = (slice.value / wheelTotal) * 360;
     if (angle <= 0) return null;
     const startAngle = cumulativeAngle;
     const endAngle = cumulativeAngle + angle;
@@ -749,9 +747,10 @@ function Legend2({ entries }) {
     const slices = groupEntries(entries);
     const tracked = slices.reduce((s, d) => s + d.value, 0);
     const rest = Math.max(MINUTES_PER_DAY - tracked, 0);
-    const list = slices.map((s) => ({ ...s, pct: Math.round((s.value / MINUTES_PER_DAY) * 100) }));
+    const legendTotal = tracked + rest; // = 24h, oppure il tracciato se le attività si sovrappongono
+    const list = slices.map((s) => ({ ...s, pct: Math.round((s.value / legendTotal) * 100) }));
     if (rest > 0) {
-      list.push({ id: "altro", name: BASE_MAP.altro.label, color: BASE_MAP.altro.color, value: rest, pct: Math.round((rest / MINUTES_PER_DAY) * 100) });
+      list.push({ id: "altro", name: BASE_MAP.altro.label, color: BASE_MAP.altro.color, value: rest, pct: Math.round((rest / legendTotal) * 100) });
     }
     return list;
   }, [entries]);
@@ -978,6 +977,10 @@ function TodayTab({ data, setData, tasksOpen, setTasksOpen, activitiesOpen, setA
     }
     const startMins = timeToMins(form.start);
     const endMins = timeToMins(form.end);
+    if (endMins === startMins) {
+      setError("L'orario di fine deve essere diverso da quello di inizio");
+      return;
+    }
 
     let baseDetails;
     if (form.mode === "onetime") {
@@ -1023,16 +1026,15 @@ function TodayTab({ data, setData, tasksOpen, setTasksOpen, activitiesOpen, setA
       };
 
       setData((d) => {
-        const day1Entries = [...(d.entries[yesterdayStr] || []), entry1].sort((a, b) => a.start.localeCompare(b.start));
-        const day2Entries = [...(d.entries[date] || []), entry2].sort((a, b) => a.start.localeCompare(b.start));
-        return {
-          ...d,
-          entries: {
-            ...d.entries,
-            [yesterdayStr]: day1Entries,
-            [date]: day2Entries,
-          },
+        const nextEntries = {
+          ...d.entries,
+          [yesterdayStr]: [...(d.entries[yesterdayStr] || []), entry1].sort((a, b) => a.start.localeCompare(b.start)),
         };
+        // Se l'attività finisce esattamente a mezzanotte (es. 22:00 -> 00:00) non resta nulla per oggi
+        if (dur2 > 0) {
+          nextEntries[date] = [...(d.entries[date] || []), entry2].sort((a, b) => a.start.localeCompare(b.start));
+        }
+        return { ...d, entries: nextEntries };
       });
     } else {
       const dur = endMins - startMins;
